@@ -1,4 +1,42 @@
+import pandas as pd
+
 from styles.theme import COLORS, FONTS
+
+# Display modes for the sidebar toggle (see components/toggle.py)
+MODES = ["Numbers", "Percentage"]
+
+
+def is_pct(mode) -> bool:
+    return mode == "Percentage"
+
+
+def share(values, total=None):
+    """Return `values` as a % of `total` (defaults to the sum of `values`).
+    Zero / missing totals give 0 instead of NaN/inf so charts never break."""
+    v = pd.Series(values).astype(float).reset_index(drop=True)
+    if total is None:
+        total = v.sum()
+    if isinstance(total, pd.Series):
+        t = total.astype(float).reset_index(drop=True).replace(0, float("nan"))
+        return (v / t * 100).fillna(0)
+    if not total:
+        return v * 0
+    return v / float(total) * 100
+
+
+def fmt_compact(v) -> str:
+    """12,345 -> 12.3K, 1,234,567 -> 1.23M — short enough for data labels."""
+    v = float(v)
+    a = abs(v)
+    if a >= 1_000_000:
+        return f"{v / 1_000_000:.2f}M"
+    if a >= 1_000:
+        return f"{v / 1_000:.1f}K"
+    return f"{v:,.0f}"
+
+
+def fmt_pct(v, decimals: int = 1) -> str:
+    return f"{float(v):.{decimals}f}%"
 
 
 def base_layout(title: str = "", height: int = 420) -> dict:
@@ -16,6 +54,14 @@ def base_layout(title: str = "", height: int = 420) -> dict:
         font=dict(family=FONTS["body"], color=COLORS["text_on_light"]),
         hoverlabel=dict(bgcolor=COLORS["primary"], font_color="#FFFFFF"),
     )
+
+
+def legend_below(y: float = -0.25, title: str = None) -> dict:
+    """Horizontal, centred legend under the plot — one place to keep every chart's legend consistent."""
+    legend = dict(orientation="h", yanchor="top", y=y, xanchor="center", x=0.5)
+    if title:
+        legend["title"] = dict(text=title)
+    return legend
 
 
 def headroom_range(*series, pad=0.18, floor_pad=0.0):
