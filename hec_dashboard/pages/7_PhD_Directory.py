@@ -4,6 +4,7 @@ from config.settings import APP_NAME, PAGE_ICON
 from styles.css import inject_css
 from styles.theme import PLOTLY_CONFIG
 from components.header import render_header
+from components.toggle import value_mode_toggle
 from data.phd_directory_recipes import (
     total_phds,
     year_table,
@@ -19,6 +20,7 @@ def fmt_k(n):
 
 st.set_page_config(page_title=f"{APP_NAME} — PhD Directory", page_icon=PAGE_ICON, layout="wide")
 inject_css()
+mode = value_mode_toggle()
 render_header(
     "PhD Country Directory",
     "PhD graduates produced by national universities, by year, discipline, and subject.",
@@ -33,14 +35,14 @@ col1, col2 = st.columns([1, 1.4])
 
 with col1:
     st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-    fig_year = phd_year_area_chart(year_table())
+    fig_year = phd_year_area_chart(year_table(), mode)
     st.plotly_chart(fig_year, use_container_width=True, config=PLOTLY_CONFIG)
     st.caption("2026 is a partial year still in progress, not a real drop-off.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col2:
     st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-    fig_bar = discipline_bar_chart(discipline_chart_data())
+    fig_bar = discipline_bar_chart(discipline_chart_data(), mode)
     st.plotly_chart(fig_bar, use_container_width=True, config=PLOTLY_CONFIG)
     st.caption("Excludes the small 'Generic programmes' bucket and records with no discipline recorded.")
     st.markdown("</div>", unsafe_allow_html=True)
@@ -49,7 +51,7 @@ with col2:
 # Row 2: Subject keyword word cloud
 # ---------------------------------------------------------------------------
 st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-fig_cloud = subject_wordcloud_chart(subject_wordcloud_data())
+fig_cloud = subject_wordcloud_chart(subject_wordcloud_data(), mode, total_phds())
 st.plotly_chart(fig_cloud, use_container_width=True, config=PLOTLY_CONFIG)
 st.caption(
     "Top 45 subject keywords by PhDs produced; word size reflects popularity. "
