@@ -5,6 +5,7 @@ from config.settings import APP_NAME, PAGE_ICON
 from styles.css import inject_css
 from styles.theme import PLOTLY_CONFIG
 from components.header import render_header
+from components.toggle import value_mode_toggle
 from data.faculty_recipes import (
     PROVINCES,
     YEAR_ORDER,
@@ -52,6 +53,7 @@ sel_faculty_types = st.sidebar.multiselect(
     "Faculty Type", FACULTY_TYPES, default=[], label_visibility="collapsed",
     placeholder="All (Full Time, Part Time)",
 )
+mode = value_mode_toggle()
 
 province_table = load_province_table(sel_provinces, sel_years, sel_faculty_types, sel_qualifications)
 pct_by_year = load_pct_by_year_table(sel_provinces, sel_years, sel_faculty_types, sel_qualifications)
@@ -86,10 +88,10 @@ gender_long = pd.DataFrame({
 col1, col2 = st.columns([1.4, 1])
 
 with col1:
-    chart_card(province_qualification_bar_chart(province_chart_df))
+    chart_card(province_qualification_bar_chart(province_chart_df, mode))
 
 with col2:
-    chart_card(faculty_gender_donut_chart(gender_long))
+    chart_card(faculty_gender_donut_chart(gender_long, mode))
     st.caption("Not split by PhD/Non-PhD in source data, so the PhD/Non-PhD filter doesn't affect this chart.")
 
 # ---------------------------------------------------------------------------
