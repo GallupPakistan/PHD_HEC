@@ -5,6 +5,7 @@ from styles.css import inject_css
 from styles.theme import PLOTLY_CONFIG, BOARD_COLOR_SEQUENCE
 from components.header import render_header
 from components.kpi_card import kpi_card
+from components.toggle import value_mode_toggle
 
 from data.enrolment_recipes import PROVINCES, YEAR_ORDER
 from data.overview_recipes import (
@@ -51,6 +52,7 @@ st.sidebar.caption(
     "Filters apply to Enrolment, Faculty, Graduates and Discipline charts. "
     "Universities and PhD Directory charts always show all data."
 )
+mode = value_mode_toggle()
 
 # ---------------------------------------------------------------------------
 # Pull every page's numbers in one pass
@@ -113,33 +115,33 @@ with c2:
 # ---------------------------------------------------------------------------
 c3, c4 = st.columns(2)
 with c3:
-    chart_card(province_hei_bar_chart(province_bars))
+    chart_card(province_hei_bar_chart(province_bars, mode))
 with c4:
-    chart_card(sector_donut_chart(sector_df))
+    chart_card(sector_donut_chart(sector_df, mode))
 
 # ---------------------------------------------------------------------------
 # Row 3 — Enrolment: trend + gender split
 # ---------------------------------------------------------------------------
 c5, c6 = st.columns(2)
 with c5:
-    chart_card(enrolment_trend_mini_chart(gender_agg))
+    chart_card(enrolment_trend_mini_chart(gender_agg, mode))
 with c6:
-    chart_card(gender_pie_chart(gender_summary))
+    chart_card(gender_pie_chart(gender_summary, mode))
 
 # ---------------------------------------------------------------------------
 # Row 4 — Enrolment: level split + discipline (full width, stacked)
 # ---------------------------------------------------------------------------
-chart_card(level_stacked_bar_chart(level_agg))
-chart_card(discipline_bar_chart_overview(discipline_top))
+chart_card(level_stacked_bar_chart(level_agg, mode))
+chart_card(discipline_bar_chart_overview(discipline_top, mode))
 
 # ---------------------------------------------------------------------------
 # Row 5 — Faculty: province split + gender split
 # ---------------------------------------------------------------------------
 c9, c10 = st.columns(2)
 with c9:
-    chart_card(faculty_province_bar_chart(faculty_prov_agg))
+    chart_card(faculty_province_bar_chart(faculty_prov_agg, mode))
 with c10:
-    chart_card(faculty_gender_donut_chart(faculty_gender_df))
+    chart_card(faculty_gender_donut_chart(faculty_gender_df, mode))
 
 # ---------------------------------------------------------------------------
 # Row 6 — Graduates trend + PhD registrations by year
@@ -148,6 +150,6 @@ with c10:
 # ---------------------------------------------------------------------------
 c11, c12 = st.columns(2)
 with c11:
-    chart_card(graduates_trend_mini_chart(graduates_agg))
+    chart_card(graduates_trend_mini_chart(graduates_agg, mode))
 with c12:
-    chart_card(phd_year_bar_chart(phd_by_year))
+    chart_card(phd_year_bar_chart(phd_by_year, mode))
