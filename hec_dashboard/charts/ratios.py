@@ -1,5 +1,5 @@
 import plotly.graph_objects as go
-from charts._base import base_layout
+from charts._base import base_layout, legend_below
 from styles.theme import COLORS, BOARD_COLOR_SEQUENCE
 
 # Same Bachelor/Master/MS-Mphil/PGD/PhD -> color mapping used by
@@ -31,6 +31,7 @@ def level_ratio_area_chart(level_table):
         )
     fig.update_layout(**base_layout("Year & Level-wise Enrolment (Share)", height=460))
     fig.update_layout(
+        showlegend=True,
         legend=dict(orientation="h", yanchor="top", y=-0.28, xanchor="center", x=0.5),
         xaxis_title="Year",
         yaxis_title="Share of Enrolment",
@@ -104,30 +105,32 @@ def sector_share_trend_chart(sector_table):
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=x, y=above, mode="none", fill="tozeroy", fillcolor="rgba(11,30,77,0.18)",
-        name="Private-led", showlegend=False, hoverinfo="skip",
+        name="Private-led (above 50%)", showlegend=True, hoverinfo="skip",
     ))
     fig.add_trace(go.Scatter(
         x=x, y=below, mode="none", fill="tozeroy", fillcolor="rgba(59,130,246,0.18)",
-        name="Public-led", showlegend=False, hoverinfo="skip",
+        name="Public-led (below 50%)", showlegend=True, hoverinfo="skip",
     ))
     fig.add_trace(go.Scatter(
-        x=x, y=private, mode="lines+markers", name="Private Share",
+        x=x, y=private, mode="lines+markers+text", name="Private Share",
         line=dict(color=COLORS["private"], width=3), marker=dict(size=6),
+        text=[f"{v:.0f}%" for v in private], textposition="top center",
+        textfont=dict(size=9, color=COLORS["private"]),
         customdata=public,
         hovertemplate="Private: %{y:.1f}%<br>Public: %{customdata:.1f}%<extra></extra>",
     ))
-    fig.add_hline(
-        y=50, line=dict(color=COLORS["neutral"], width=1.5, dash="dash"),
-        annotation_text="50% split", annotation_position="top left",
-        annotation_font=dict(size=10, color=COLORS["text_on_light_muted"]),
-    )
+    fig.add_trace(go.Scatter(
+        x=x, y=[50] * len(x), mode="lines", name="50% split",
+        line=dict(color=COLORS["neutral"], width=1.5, dash="dash"), hoverinfo="skip",
+    ))
     fig.update_layout(**base_layout("Year and Sector-wise Enrolment (Share)", height=460))
     fig.update_layout(
-        showlegend=False,
+        showlegend=True,
+        legend=legend_below(-0.30),
         xaxis_title="Year",
         yaxis_title="Private Sector Share",
         hovermode="x unified",
-        margin=dict(t=50, b=90, l=60, r=20),
+        margin=dict(t=50, b=130, l=60, r=20),
     )
     fig.update_xaxes(tickangle=-25, automargin=True)
     fig.update_yaxes(ticksuffix="%", range=[0, 100])
