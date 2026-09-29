@@ -3,7 +3,7 @@ import random
 import textwrap
 
 import plotly.graph_objects as go
-from charts._base import base_layout
+from charts._base import base_layout, is_pct, share, fmt_compact, legend_below
 from styles.theme import COLORS, FONTS, BOARD_COLOR_SEQUENCE
 
 
@@ -11,58 +11,77 @@ def _wrap(label, width=16):
     return "<br>".join(textwrap.wrap(label, width=width))
 
 
-def phd_year_area_chart(year_df):
+def phd_year_area_chart(year_df, mode="Numbers"):
     """Single-series PhD-output trend across ~26 years -- a gold filled
-    line rather than a 27-bar chart (too dense to label cleanly), matching
-    the house style already used for other single-metric year trends
-    (HEI growth, enrolment, graduates) elsewhere in this dashboard."""
-    df = year_df[year_df["Year"] != "Total"]
+    line rather than a 27-bar chart (too dense to label cleanly).
+    Percentage mode = each year's share of all PhDs produced."""
+    pct = is_pct(mode)
+    df = year_df[year_df["Year"] != "Total"].reset_index(drop=True)
+    raw = df["Total PhDs Produced"].astype(float)
+    y = share(raw) if pct else raw
+    name = "Share of all PhDs" if pct else "PhDs Produced"
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-            x=df["Year"], y=df["Total PhDs Produced"],
-            mode="lines+markers",
-            name="PhDs Produced",
+            x=df["Year"], y=y,
+            mode="lines+markers", name=name,
             line=dict(color=COLORS["gold"], width=3),
             marker=dict(size=5, color=COLORS["gold"]),
             fill="tozeroy",
             fillcolor="rgba(201,168,76,0.15)",
-            hovertemplate="%{x}<br>%{y:,} PhDs<extra></extra>",
+            hovertemplate=("%{x}<br>%{y:.1f}% of all PhDs<extra></extra>" if pct
+                           else "%{x}<br>%{y:,.0f} PhDs<extra></extra>"),
         )
     )
     fig.update_layout(**base_layout("Year-wise PhDs Produced", height=460))
     fig.update_layout(
-        showlegend=False,
+        showlegend=True,
+        legend=legend_below(-0.32),
         xaxis_title="Year",
-        yaxis_title="PhDs Produced",
-        margin=dict(t=50, b=90, l=60, r=20),
+        yaxis_title="Share of All PhDs (%)" if pct else "PhDs Produced",
+        margin=dict(t=50, b=120, l=60, r=20),
         hovermode="x unified",
     )
     fig.update_xaxes(tickangle=-45, automargin=True)
-    fig.update_yaxes(tickformat=",")
+    if pct:
+        fig.update_yaxes(ticksuffix="%", tickformat=".0f")
+    else:
+        fig.update_yaxes(tickformat=",")
     return fig
 
 
-def discipline_bar_chart(discipline_df):
+def discipline_bar_chart(discipline_df, mode="Numbers"):
+    pct = is_pct(mode)
+    raw = discipline_df["Numbers"].reset_index(drop=True).astype(float)
+    y = share(raw) if pct else raw
     fig = go.Figure()
     fig.add_trace(
         go.Bar(
             x=[_wrap(d) for d in discipline_df["Discipline"]],
-            y=discipline_df["Numbers"],
+            y=y,
+            name="Share of all PhDs" if pct else "PhDs produced",
             marker_color=COLORS["accent"],
-            text=[f"{v:,}" for v in discipline_df["Numbers"]],
-            textposition="outside",
+            text=[f"{v:.1f}%" if pct else f"{int(v):,}" for v in y],
+            textposition="outside", cliponaxis=False,
             textfont=dict(size=10, color=COLORS["text_on_light"]),
+            hovertemplate=("%{x}<br>%{y:.1f}%<extra></extra>" if pct else "%{x}<br>%{y:,.0f}<extra></extra>"),
         )
     )
-    fig.update_layout(**base_layout("PhDs Produced Popularity by Subject Keywords", height=440))
+    fig.update_layout(**base_layout("PhDs Produced by Discipline", height=460))
     fig.update_layout(
+        showlegend=True,
+        legend=legend_below(-0.42),
         xaxis_title="Discipline",
-        yaxis_title="Total PhDs Produced",
-        margin=dict(t=50, b=120, l=50, r=20),
+        yaxis_title="Share of All PhDs (%)" if pct else "Total PhDs Produced",
+        margin=dict(t=50, b=150, l=50, r=20),
     )
     fig.update_xaxes(tickfont=dict(size=9))
-    fig.update_yaxes(tickformat=",")
+    peak = float(y.max()) if len(y) else 0
+    fig.update_yaxes(range=[0, peak * 1.15 if peak else 1])
+    if pct:
+        fig.update_yaxes(ticksuffix="%", tickformat=".0f")
+    else:
+        fig.update_yaxes(tickformat=",")
     return fig
 
 
@@ -107,7 +126,10 @@ def _place_words(df, width=1040, height=520):
     return positions
 
 
-def subject_wordcloud_chart(subject_df):
+def subject_wordcloud_chart(subject_df, mode="Numbers", grand_total=None):
+    """Percentage mode changes the hover to '% of all PhDs' (word size is
+    relative either way, so it is unchanged)."""
+    pct = is_pct(mode) and grand_total
     positions = _place_words(subject_df)
     colors = [BOARD_COLOR_SEQUENCE[i % len(BOARD_COLOR_SEQUENCE)] for i in range(len(subject_df))]
     random.Random(7).shuffle(colors)
@@ -120,7 +142,8 @@ def subject_wordcloud_chart(subject_df):
             go.Scatter(
                 x=[x], y=[y], mode="text", text=[word],
                 textfont=dict(size=size, color=color, family=FONTS["body"]),
-                hovertext=f"{word}<br><b>{count:,}</b> PhDs Produced",
+                hovertext=(f"{word}<br><b>{count / grand_total * 100:.2f}%</b> of all PhDs" if pct
+                           else f"{word}<br><b>{count:,}</b> PhDs Produced"),
                 hoverinfo="text",
                 hoverlabel=dict(bgcolor=color, font=dict(color="#FFFFFF", size=13, family=FONTS["body"])),
                 showlegend=False,
