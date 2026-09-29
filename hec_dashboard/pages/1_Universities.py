@@ -5,6 +5,8 @@ from styles.css import inject_css
 from styles.theme import PLOTLY_CONFIG, COLORS
 from components.header import render_header
 from components.kpi_card import kpi_card
+from components.toggle import value_mode_toggle
+from charts._base import is_pct
 from data.recipes import (
     load_province_table,
     load_sector_summary,
@@ -15,6 +17,7 @@ from charts.universities import city_map_chart, year_growth_chart, sector_donut_
 
 st.set_page_config(page_title=APP_NAME, page_icon=PAGE_ICON, layout="wide")
 inject_css()
+mode = value_mode_toggle()
 
 province_df = load_province_table()
 sector_df = load_sector_summary()
@@ -42,9 +45,9 @@ k1, k2, k3 = st.columns(3)
 with k1:
     kpi_card("Total HEIs", f"{total_heis}", color=COLORS["gold"])
 with k2:
-    kpi_card("Public", f"{total_public}", color=COLORS["public"])
+    kpi_card("Public", f"{total_public / total_heis * 100:.1f}%" if is_pct(mode) else f"{total_public}", color=COLORS["public"])
 with k3:
-    kpi_card("Private", f"{total_private}", color=COLORS["private"])
+    kpi_card("Private", f"{total_private / total_heis * 100:.1f}%" if is_pct(mode) else f"{total_private}", color=COLORS["private"])
 
 st.write("")
 
@@ -61,7 +64,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 # Row 2: Province & Sector-wise HEIs (full width)
 # ---------------------------------------------------------------------------
 st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-fig_province = province_sector_bar_chart(province_df)
+fig_province = province_sector_bar_chart(province_df, mode)
 st.plotly_chart(fig_province, use_container_width=True, config=PLOTLY_CONFIG)
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -78,6 +81,6 @@ with col3:
 
 with col4:
     st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-    fig_donut = sector_donut_chart(sector_df)
+    fig_donut = sector_donut_chart(sector_df, mode)
     st.plotly_chart(fig_donut, use_container_width=True, config=PLOTLY_CONFIG)
     st.markdown("</div>", unsafe_allow_html=True)
