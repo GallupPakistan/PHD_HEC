@@ -4,6 +4,7 @@ from config.settings import APP_NAME, PAGE_ICON
 from styles.css import inject_css
 from styles.theme import PLOTLY_CONFIG
 from components.header import render_header
+from components.toggle import value_mode_toggle
 from data.enrolment_recipes import (
     load_gender_wise,
     load_level_wise,
@@ -33,6 +34,7 @@ sel_years = st.sidebar.multiselect(
     "Year", YEAR_ORDER, default=[], label_visibility="collapsed",
     placeholder="All years",
 )
+mode = value_mode_toggle()
 
 gender_df = apply_filters(load_gender_wise(), sel_provinces, sel_years)
 level_df = apply_filters(load_level_wise(), sel_provinces, sel_years)
@@ -64,10 +66,10 @@ def chart_card(fig):
 col1, col2 = st.columns([1.3, 1])
 
 with col1:
-    chart_card(gender_line_chart(gender_agg))
+    chart_card(gender_line_chart(gender_agg, mode))
 
 with col2:
-    chart_card(gender_pie_chart(gender_summary))
+    chart_card(gender_pie_chart(gender_summary, mode))
 
 # ---------------------------------------------------------------------------
 # Row 2: Level-wise stacked bar + Sector-wise two-line trend
@@ -75,7 +77,7 @@ with col2:
 col3, col4 = st.columns(2)
 
 with col3:
-    chart_card(level_stacked_bar_chart(level_agg))
+    chart_card(level_stacked_bar_chart(level_agg, mode))
 
 with col4:
-    chart_card(sector_trend_chart(sector_agg))
+    chart_card(sector_trend_chart(sector_agg, mode))
