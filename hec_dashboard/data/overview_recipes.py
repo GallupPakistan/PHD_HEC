@@ -73,6 +73,9 @@ def overview_discipline(top_n=8, provinces=None):
     no year breakdown (see details_recipes.load_discipline_count_table)."""
     disc = load_discipline_count_table(provinces)
     disc = disc[disc["Discipline"] != "Total"].copy()
+    # Share of ALL disciplines (computed before trimming to top_n) so the
+    # Percentage view of the chart is a true share of enrolment.
+    disc["Share"] = disc["Total"] / disc["Total"].sum() * 100
     disc = disc.sort_values("Total", ascending=False).head(top_n)
     return disc.sort_values("Total", ascending=True)  # ascending for horizontal bar (largest on top)
 
