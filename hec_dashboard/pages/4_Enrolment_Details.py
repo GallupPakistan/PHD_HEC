@@ -5,6 +5,7 @@ from styles.css import inject_css
 from styles.theme import PLOTLY_CONFIG, COLORS
 from components.header import render_header
 from components.kpi_card import kpi_card
+from components.toggle import value_mode_toggle
 from data.enrolment_recipes import PROVINCES, YEAR_ORDER
 from data.details_recipes import (
     load_gender_year_table,
@@ -29,6 +30,7 @@ sel_years = st.sidebar.multiselect(
     "Year", YEAR_ORDER, default=[], label_visibility="collapsed",
     placeholder="All years",
 )
+mode = value_mode_toggle()
 
 discipline_table = load_discipline_count_table(sel_provinces)
 gender_year_table = load_gender_year_table(sel_provinces, sel_years)
@@ -58,7 +60,7 @@ total_row = discipline_table.loc[discipline_table["Discipline"] == "Total"].iloc
 
 st.markdown('<div class="hec-card">', unsafe_allow_html=True)
 kpi_card("Total Enrolment (selected provinces)", f"{int(total_row['Total']):,}", color=COLORS["accent"])
-st.plotly_chart(discipline_gender_bar_chart(disc_chart_df), use_container_width=True, config=PLOTLY_CONFIG)
+st.plotly_chart(discipline_gender_bar_chart(disc_chart_df, mode), use_container_width=True, config=PLOTLY_CONFIG)
 st.caption("Discipline breakdown is province-wise only (no year breakdown available in source data).")
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -68,7 +70,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 col1, col2 = st.columns([1.4, 1])
 
 with col1:
-    chart_card(gender_line_chart(gender_year_table))
+    chart_card(gender_line_chart(gender_year_table, mode))
 
 with col2:
-    chart_card(gender_pie_chart(gender_summary))
+    chart_card(gender_pie_chart(gender_summary, mode))
