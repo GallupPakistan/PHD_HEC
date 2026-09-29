@@ -14,8 +14,16 @@ st.write(APP_SUBTITLE)
 st.write("Use the sidebar to navigate between pages:")
 st.markdown(
     """
+    - **Overview** — Headline numbers and best visual from every page
     - **Universities** — HEIs by province, sector, city map, and growth over the years
     - **Enrolment (Summary)** — Gender, level, and sector-wise enrolment trends
+    - **Enrolment Ratios** — Share of enrolment by level, sector, and discipline
+    - **Enrolment Details** — Discipline, year, and gender-wise breakdown
+    - **Faculty Stats** — PhD / Non-PhD faculty by province, sector, and gender
+    - **Graduate Stats** — Year, gender, and level-wise passout
+    - **PhD Directory** — PhDs produced by year, discipline, and subject
+
+    Every page has a **Show values as: Numbers / Percentage** switch in the sidebar.
     """
 )
 st.markdown("</div>", unsafe_allow_html=True)
