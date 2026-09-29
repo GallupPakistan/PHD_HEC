@@ -1,6 +1,6 @@
 import plotly.express as px
 import plotly.graph_objects as go
-from charts._base import base_layout
+from charts._base import base_layout, is_pct, share, legend_below
 from styles.theme import COLORS
 
 
@@ -79,24 +79,44 @@ def year_growth_chart(year_df):
     return fig
 
 
-def province_sector_bar_chart(province_df):
-    df = province_df[province_df["Province"] != "TOTAL (PAKISTAN)"]
+def province_sector_bar_chart(province_df, mode="Numbers"):
+    """Percentage mode = Private/Public split *within* each province."""
+    pct = is_pct(mode)
+    df = province_df[province_df["Province"] != "TOTAL (PAKISTAN)"].copy()
+    df[["Private", "Public"]] = df[["Private", "Public"]].fillna(0)
+    both = df["Private"] + df["Public"]
+    if pct:
+        private, public = share(df["Private"], both), share(df["Public"], both)
+        fmt = lambda v: f"{v:.1f}%"
+    else:
+        private, public = df["Private"], df["Public"]
+        fmt = lambda v: f"{int(v):,}"
+    x = df["Province"].reset_index(drop=True)
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=df["Province"], y=df["Private"], name="Private", marker_color=COLORS["private"]))
-    fig.add_trace(go.Bar(x=df["Province"], y=df["Public"], name="Public", marker_color=COLORS["public"]))
+    for name, y, color in (("Private", private, COLORS["private"]), ("Public", public, COLORS["public"])):
+        fig.add_trace(go.Bar(
+            x=x, y=y, name=name, marker_color=color,
+            text=[fmt(v) for v in y], textposition="outside", cliponaxis=False,
+            textfont=dict(size=10, color=COLORS["text_on_light"]),
+        ))
     fig.update_layout(**base_layout("Province & Sector-wise HEIs", height=460))
     fig.update_layout(
         barmode="group",
+        showlegend=True,
         xaxis_title="",
-        yaxis_title="Number of HEIs",
-        legend=dict(orientation="h", yanchor="top", y=-0.38, xanchor="center", x=0.5),
+        yaxis_title="Share of Province HEIs (%)" if pct else "Number of HEIs",
+        legend=legend_below(-0.38, "Sector"),
         margin=dict(t=50, b=130, l=60, r=20),
     )
     fig.update_xaxes(tickangle=-25)
+    peak = float(max(private.max(), public.max())) if len(private) else 0
+    fig.update_yaxes(range=[0, peak * 1.18 if peak else 1])
+    if pct:
+        fig.update_yaxes(ticksuffix="%", tickformat=".0f")
     return fig
 
 
-def sector_donut_chart(sector_df):
+def sector_donut_chart(sector_df, mode="Numbers"):
     total = int(sector_df["Count"].sum())
     fig = px.pie(
         sector_df,
@@ -107,7 +127,7 @@ def sector_donut_chart(sector_df):
         color_discrete_map={"Public": COLORS["public"], "Private": COLORS["private"]},
     )
     fig.update_traces(
-        textinfo="value+percent",
+        textinfo="percent" if is_pct(mode) else "value+percent",
         textposition="inside",
         insidetextorientation="horizontal",
         textfont=dict(size=13, color="#FFFFFF"),
