@@ -1,7 +1,7 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from charts._base import base_layout
+from charts._base import base_layout, is_pct, share, fmt_compact, legend_below
 from styles.theme import COLORS, BOARD_COLOR_SEQUENCE
 
 # PhD / Non-PhD is used consistently in gold/blue across every chart on this
@@ -12,41 +12,59 @@ from styles.theme import COLORS, BOARD_COLOR_SEQUENCE
 QUALIFICATION_COLORS = {"PhD": COLORS["gold"], "Non-PhD": COLORS["accent"]}
 
 
-def province_qualification_bar_chart(province_df):
+def province_qualification_bar_chart(province_df, mode="Numbers"):
     """Horizontal stacked bar: PhD vs Non-PhD faculty per province, sorted
-    ascending by Total so the largest province renders at the top. Wide
-    bargap plus a padded total-label keep the province names (left) and the
-    end-of-bar totals (right) from crowding the plot."""
+    ascending by Total so the largest province renders at the top.
+    Percentage mode makes every bar 100% (PhD vs Non-PhD mix inside the
+    province); the end-of-bar label then shows the headcount as n=."""
+    pct = is_pct(mode)
     df = province_df.sort_values("Total", ascending=True).reset_index(drop=True)
     labels = df["Province"].astype(str)
     totals = df["Total"]
+    both = df["PhD"] + df["Non_PhD"]
+    if pct:
+        phd, non = share(df["PhD"], both), share(df["Non_PhD"], both)
+        seg = lambda raw, s: [f"{v:.1f}%" if v >= 4 else "" for v in s]
+        end_label = lambda t: f"n={int(t):,}"
+        x_max = 100.0
+    else:
+        phd, non = df["PhD"], df["Non_PhD"]
+        seg = lambda raw, s: [fmt_compact(v) if (t and v / t >= 0.06) else "" for v, t in zip(raw, both)]
+        end_label = lambda t: f"{int(t):,}"
+        x_max = float(totals.max())
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=labels, x=df["PhD"], name="PhD", orientation="h",
-        marker=dict(color=QUALIFICATION_COLORS["PhD"], line=dict(color="#FFFFFF", width=1)),
-    ))
-    fig.add_trace(go.Bar(
-        y=labels, x=df["Non_PhD"], name="Non-PhD", orientation="h",
-        marker=dict(color=QUALIFICATION_COLORS["Non-PhD"], line=dict(color="#FFFFFF", width=1)),
-    ))
+    for name, raw, vals, color in (("PhD", df["PhD"], phd, QUALIFICATION_COLORS["PhD"]),
+                                   ("Non-PhD", df["Non_PhD"], non, QUALIFICATION_COLORS["Non-PhD"])):
+        fig.add_trace(go.Bar(
+            y=labels, x=vals, name=name, orientation="h",
+            marker=dict(color=color, line=dict(color="#FFFFFF", width=1)),
+            text=seg(raw, vals), textposition="inside", textfont=dict(size=10, color="#FFFFFF"),
+            hovertemplate=("%{y}<br>" + name + ": %{x:.1f}%<extra></extra>") if pct
+            else ("%{y}<br>" + name + ": %{x:,.0f}<extra></extra>"),
+        ))
     fig.update_layout(barmode="stack")
     fig.update_layout(**base_layout("PhD / Non-PhD Faculty by Province", height=460))
     fig.update_layout(
-        legend=dict(orientation="h", yanchor="top", y=-0.14, xanchor="center", x=0.5),
-        xaxis_title="Faculty Count",
+        showlegend=True,
+        legend=legend_below(-0.14, "Qualification"),
+        xaxis_title="Share of Province Faculty (%)" if pct else "Faculty Count",
         bargap=0.35,
         margin=dict(t=50, b=80, l=180, r=90),
         annotations=[
             dict(
-                x=total, y=label, text=f"{int(total):,}",
+                x=(100 if pct else total), y=label, text=end_label(total),
                 xanchor="left", yanchor="middle", showarrow=False,
                 font=dict(size=10, color=COLORS["text_on_light"]), xshift=10,
             )
             for total, label in zip(totals, labels)
         ],
     )
-    fig.update_xaxes(tickformat=".2s", range=[0, float(totals.max()) * 1.20])
+    fig.update_xaxes(range=[0, x_max * 1.20])
+    if pct:
+        fig.update_xaxes(ticksuffix="%", tickformat=".0f", tickvals=[0, 20, 40, 60, 80, 100])
+    else:
+        fig.update_xaxes(tickformat=".2s")
     fig.update_yaxes(automargin=True, tickfont=dict(size=11))
     return fig
 
