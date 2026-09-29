@@ -4,6 +4,7 @@ from config.settings import APP_NAME, PAGE_ICON
 from styles.css import inject_css
 from styles.theme import PLOTLY_CONFIG
 from components.header import render_header
+from components.toggle import value_mode_toggle
 from data.passout_recipes import (
     load_gender_wise,
     load_level_wise,
@@ -31,6 +32,7 @@ sel_years = st.sidebar.multiselect(
     "Year", YEAR_ORDER, default=[], label_visibility="collapsed",
     placeholder="All years",
 )
+mode = value_mode_toggle()
 
 gender_df = apply_filters(load_gender_wise(), sel_provinces, sel_years)
 level_df = apply_filters(load_level_wise(), sel_provinces, sel_years)
@@ -57,8 +59,8 @@ def chart_card(fig):
 # Row 1: Year, Gender & Level-wise Passout -- heatmap (full width)
 # ---------------------------------------------------------------------------
 st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-st.plotly_chart(level_heatmap_chart(level_agg), use_container_width=True, config=PLOTLY_CONFIG)
-st.caption("Source data doesn't split this table by gender, only by qualification level. Color is scaled per level (row-wise) since Bachelor volumes run ~100x PGD/PhD -- the number in each cell is always the real headcount.")
+st.plotly_chart(level_heatmap_chart(level_agg, mode), use_container_width=True, config=PLOTLY_CONFIG)
+st.caption("Source data doesn't split this table by gender, only by qualification level. Color is scaled per level (row-wise) since Bachelor volumes run ~100x PGD/PhD -- the number in each cell is the real headcount (or % of the year's total when Percentage is selected).")
 st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
@@ -69,7 +71,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 col1, col2 = st.columns([1.3, 1])
 
 with col1:
-    chart_card(gender_line_chart(gender_agg))
+    chart_card(gender_line_chart(gender_agg, mode))
 
 with col2:
-    chart_card(gender_donut_chart(gender_totals(gender_agg)))
+    chart_card(gender_donut_chart(gender_totals(gender_agg), mode))
