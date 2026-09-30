@@ -22,8 +22,6 @@ st.markdown(
     - **Faculty Stats** — PhD / Non-PhD faculty by province, sector, and gender
     - **Graduate Stats** — Year, gender, and level-wise passout
     - **PhD Directory** — PhDs produced by year, discipline, and subject
-
-    Every page has a **Show values as: Numbers / Percentage** switch in the sidebar.
     """
 )
 st.markdown("</div>", unsafe_allow_html=True)
