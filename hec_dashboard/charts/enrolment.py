@@ -154,8 +154,10 @@ def level_pie_chart(level_summary_df, mode="Percentage"):
     )
     fig.update_traces(
         textinfo="percent" if pct else "value+percent",
-        textposition="outside",
-        textfont=dict(size=11, color=COLORS["text_on_light"]),
+        textposition="auto",                # inside where it fits, outside only for tiny slices
+        insidetextorientation="horizontal",
+        insidetextfont=dict(size=11, color="#FFFFFF"),
+        outsidetextfont=dict(size=11, color=COLORS["text_on_light"]),
         sort=False,
     )
     fig.update_layout(**base_layout("Level-wise Enrolment", height=460))
@@ -178,8 +180,9 @@ def gender_pie_chart(gender_summary_df, mode="Numbers"):
     )
     fig.update_traces(
         textinfo="percent" if pct else "value+percent",
-        textposition="outside",
-        textfont=dict(size=13, color=COLORS["text_on_light"]),
+        textposition="inside",              # outside labels were clipped at the chart edge
+        insidetextorientation="horizontal",
+        textfont=dict(size=13, color="#FFFFFF"),
         sort=False,
     )
     fig.update_layout(**base_layout("Gender-wise Enrolment", height=460))
