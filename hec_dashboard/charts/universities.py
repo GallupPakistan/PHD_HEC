@@ -4,29 +4,38 @@ from charts._base import base_layout, is_pct, share, legend_below
 from styles.theme import COLORS
 
 
-def city_map_chart(city_df):
+def city_map_chart(city_df, mode="Numbers"):
+    """Bubble map of HEIs per city. Percentage mode sizes bubbles and shows
+    hover values as a share of all HEIs in the country."""
+    pct = is_pct(mode)
     map_view = city_df.melt(
         id_vars=["City", "lon", "lat", "Total"],
         value_vars=["Public", "Private"],
         var_name="Sector",
         value_name="Count",
     )
-    map_view = map_view[map_view["Count"] > 0]
+    map_view = map_view[map_view["Count"] > 0].copy()
+    grand = float(city_df["Total"].sum()) or 1.0
+    map_view["Share"] = map_view["Count"] / grand * 100
 
     fig = px.scatter_map(
         map_view,
         lat="lat",
         lon="lon",
-        size="Count",
+        size="Share" if pct else "Count",
         color="Sector",
         hover_name="City",
-        hover_data={"Count": True, "lat": False, "lon": False},
+        hover_data=(
+            {"Share": ":.1f", "Count": False, "lat": False, "lon": False} if pct
+            else {"Count": True, "Share": False, "lat": False, "lon": False}
+        ),
+        labels={"Share": "% of all HEIs"},
         color_discrete_map={"Public": COLORS["public"], "Private": COLORS["private"]},
         size_max=38,
         zoom=4.2,
         center={"lat": 30.3, "lon": 69.5},
     )
-    fig.update_layout(**base_layout("Map Location — City-wise HEIs", height=460))
+    fig.update_layout(**base_layout("Map Location — City-wise HEIs" + (" (% of all HEIs)" if pct else ""), height=460))
     fig.update_layout(
         map_style="open-street-map",
         margin=dict(t=90, b=10, l=0, r=0),
@@ -39,43 +48,60 @@ def city_map_chart(city_df):
     return fig
 
 
-def year_growth_chart(year_df):
+def year_growth_chart(year_df, mode="Numbers"):
+    """Percentage mode expresses both lines as a share of today's total HEIs:
+    the running total becomes 'how much of today's system existed by year X'
+    (reaching 100% at the latest year) and new-per-year becomes the share of
+    all HEIs founded that year."""
+    pct = is_pct(mode)
+    total = float(year_df["Cumulative_Total"].max()) or 1.0
+    cum = year_df["Cumulative_Total"] / total * 100 if pct else year_df["Cumulative_Total"]
+    new = year_df["New_Added"] / total * 100 if pct else year_df["New_Added"]
+    cum_text = [f"{v:.0f}%" for v in cum] if pct else list(cum)
+    new_text = [f"{v:.1f}%" for v in new] if pct else list(new)
+    hover = "%{y:.1f}%" if pct else "%{y:,.0f}"
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
             x=year_df["Year"],
-            y=year_df["Cumulative_Total"],
+            y=cum,
             mode="lines+markers+text",
-            name="Total HEIs Established Over the Years",
+            name="Total HEIs Established Over the Years" if not pct else "Cumulative % of today's HEIs",
             line=dict(color=COLORS["positive"], width=3),
             marker=dict(size=5),
-            text=year_df["Cumulative_Total"],
+            text=cum_text,
             textposition="top center",
             textfont=dict(size=8, color=COLORS["positive"]),
+            hovertemplate=hover + "<extra>Cumulative</extra>",
         )
     )
     fig.add_trace(
         go.Scatter(
             x=year_df["Year"],
-            y=year_df["New_Added"],
+            y=new,
             mode="lines+markers+text",
-            name="New HEIs Established Within a Year",
+            name="New HEIs Established Within a Year" if not pct else "% of HEIs founded that year",
             line=dict(color=COLORS["private"], width=2),
             marker=dict(size=5),
-            text=year_df["New_Added"],
+            text=new_text,
             textposition="bottom center",
             textfont=dict(size=8, color=COLORS["private"]),
+            hovertemplate=hover + "<extra>New</extra>",
         )
     )
     fig.update_layout(**base_layout("Increase in HEIs over the years (1959–2025)", height=480))
     fig.update_layout(
+        showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=-0.22, xanchor="center", x=0.5),
         xaxis_title="Year",
-        yaxis_title="Number of HEIs",
+        yaxis_title="Share of today's HEIs (%)" if pct else "Number of HEIs",
         hovermode="x unified",
         margin=dict(t=50, b=80, l=40, r=20),
     )
-    fig.update_yaxes(range=[-15, year_df["Cumulative_Total"].max() * 1.15])
+    if pct:
+        fig.update_yaxes(range=[-5, 115], ticksuffix="%", tickformat=".0f")
+    else:
+        fig.update_yaxes(range=[-15, year_df["Cumulative_Total"].max() * 1.15])
     return fig
 
 
