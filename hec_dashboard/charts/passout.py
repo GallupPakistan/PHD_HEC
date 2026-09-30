@@ -1,6 +1,6 @@
 import plotly.express as px
 import plotly.graph_objects as go
-from charts._base import base_layout, headroom_range, is_pct, share, legend_below
+from charts._base import apply_finalize, base_layout, headroom_range, is_pct, share, legend_below
 from styles.theme import COLORS, BOARD_COLOR_SEQUENCE
 
 LEVEL_COLS = ["Bachelor", "Master", "MS_Mphil", "PGD", "PhD"]
@@ -143,3 +143,6 @@ def level_heatmap_chart(level_agg, mode="Numbers"):
     fig.update_xaxes(tickangle=-25, automargin=True, side="bottom")
     fig.update_yaxes(automargin=True, tickfont=dict(size=12))
     return fig
+
+
+apply_finalize(globals())
