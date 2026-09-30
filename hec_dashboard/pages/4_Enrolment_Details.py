@@ -6,6 +6,7 @@ from styles.theme import COLORS
 from components.header import render_header
 from components.kpi_card import kpi_card
 from components.cards import chart_card
+from components.toggle import value_mode_toggle
 from data.enrolment_recipes import PROVINCES, YEAR_ORDER
 from data.details_recipes import load_gender_year_table, load_gender_summary, load_discipline_count_table
 from data.extra_recipes import enrol_by_province, enrol_province_year, discipline_by_province, clean_discipline
@@ -55,41 +56,42 @@ with k2:
     kpi_card("Largest Discipline", top_d["Label"].split(",")[0], color=COLORS["gold"])
 with k3:
     kpi_card("Female Share", f"{female_pct:.1f}%", color="#EC4899")
+mode = value_mode_toggle()
 st.write("")
 
 # 1 ── Discipline x gender
-chart_card(discipline_gender_bar_chart(disc_chart_df.drop(columns="Label"), "Numbers"),
+chart_card(discipline_gender_bar_chart(disc_chart_df.drop(columns="Label"), mode),
            "Discipline breakdown is province-wise only (no year breakdown available in source data); headcounts are estimates.")
 
 # 2 ── Discipline tree-map
 tm = disc_chart_df[~disc_chart_df["Discipline"].str.startswith("00")]
-chart_card(treemap(tm["Label"], tm["Total"], "Discipline Share of Enrolment (Tree-map)", height=520),
+chart_card(treemap(tm["Label"], tm["Total"], "Discipline Share of Enrolment (Tree-map)", height=520, mode=mode),
            "Bigger tile = more students. Hover for the exact number and share. The small 'Generic programmes' bucket is left out.")
 
 # 3 ── Gender gap by discipline
 chart_card(gap_bar(disc_chart_df["Label"], disc_chart_df["Female"], disc_chart_df["Male"],
-                   "Gender Gap by Discipline (Female − Male)"),
+                   "Gender Gap by Discipline (Female − Male)", mode=mode),
            "Right of the centre line = more women enrolled; left = more men.")
 
 # 4 ── Gender trend
-chart_card(gender_line_chart(gender_year_table, "Numbers"), "Hover over the lines to see exact values.")
+chart_card(gender_line_chart(gender_year_table, mode), "Hover over the lines to see exact values.")
 
 # 5 ── Gender pie + province total (compact pair)
 c1, c2 = st.columns(2)
 with c1:
-    chart_card(gender_pie_chart(gender_summary, "Numbers"))
+    chart_card(gender_pie_chart(gender_summary, mode))
 with c2:
     chart_card(hbar(by_prov["Province"], by_prov["Total"], "Enrolment by Province",
-                    colors=[PROVINCE_COLORS.get(p) for p in by_prov["Province"]], xtitle="Enrolment (selected years combined)"))
+                    colors=[PROVINCE_COLORS.get(p) for p in by_prov["Province"]], xtitle="Enrolment (selected years combined)", mode=mode))
 
 # 6 ── Province x Year heat-map
 chart_card(heatmap(prov_year.values.tolist(), [short_year(y) for y in prov_year.columns], list(prov_year.index),
-                   "Province × Year Enrolment (Heat-map)", colorbar_title="Enrolment"),
-           "Darker = higher enrolment. * = provisional year.")
+                   "Province × Year Enrolment (Heat-map)", colorbar_title="Enrolment", mode=mode),
+           "Darker = higher. * = provisional year. Percentage view: each cell is the province's share of that year's enrolment.")
 
 # 7 ── Discipline x Province heat-map
 labels_x = [p.replace("Khyber Pakhtunkhwa", "Khyber<br>Pakhtunkhwa").replace("Gilgit-Baltistan", "Gilgit-<br>Baltistan")
             for p in disc_by_prov.columns]
 chart_card(heatmap(disc_by_prov.values.tolist(), labels_x, list(disc_by_prov.index),
-                   "Discipline × Province Enrolment (Heat-map)", colorbar_title="Est. enrolment"),
-           "Estimated headcount (each province's discipline % × its all-years enrolment). The small 'Generic programmes' bucket is left out.")
+                   "Discipline × Province Enrolment (Heat-map)", colorbar_title="Est. enrolment", mode=mode),
+           "Percentage view: each cell is the discipline's share of that province's enrolment. Numbers view: estimated headcount (each province's discipline % × its all-years enrolment). The small 'Generic programmes' bucket is left out.")
