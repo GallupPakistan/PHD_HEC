@@ -82,9 +82,10 @@ def gender_donut_chart(gender_totals_df, mode="Numbers"):
         color_discrete_map={"Female": BOARD_COLOR_SEQUENCE[7], "Male": COLORS["public"]},
     )
     fig.update_traces(
-        textposition="outside",
-        texttemplate="%{percent}" if pct else "%{value:,} (%{percent})",
-        textfont=dict(size=12, color=COLORS["text_on_light"]),
+        textposition="inside",
+        insidetextorientation="horizontal",
+        texttemplate="%{percent}" if pct else "%{value:,}<br>%{percent}",
+        textfont=dict(size=13, color="#FFFFFF"),
         sort=False,
     )
     fig.update_layout(**base_layout("Gender Wise Student Passout", height=420))
