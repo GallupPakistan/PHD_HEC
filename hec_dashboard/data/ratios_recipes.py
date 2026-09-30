@@ -38,6 +38,21 @@ def _pct_by_year(df, value_cols):
     return agg.sort_values("Year").reset_index(drop=True).drop(columns="Total")
 
 
+def _counts_by_year(df, value_cols):
+    """Raw headcounts per year (the Numbers-mode counterpart of _pct_by_year)."""
+    agg = df.groupby("Year", as_index=False)[value_cols].sum()
+    agg["Year"] = pd.Categorical(agg["Year"], categories=YEAR_ORDER, ordered=True)
+    return agg.sort_values("Year").reset_index(drop=True)
+
+
+def load_level_count_table(provinces, years):
+    return _counts_by_year(apply_filters(load_level_wise(), provinces, years), LEVEL_COLS)
+
+
+def load_sector_count_table(provinces, years):
+    return _counts_by_year(apply_filters(load_sector_wise(), provinces, years), SECTOR_COLS)
+
+
 def load_level_ratio_table(provinces, years):
     df = apply_filters(load_level_wise(), provinces, years)
     return _pct_by_year(df, LEVEL_COLS)
@@ -57,6 +72,7 @@ def load_level_ratio_summary(provinces, years):
         {
             "Level": [LEVEL_LABELS.get(c, c) for c in LEVEL_COLS],
             "Percentage": (totals.values / grand_total * 100).round(2),
+            "Count": totals.values.astype(int),
         }
     )
     return out
@@ -74,3 +90,12 @@ def load_discipline_ratio_table(provinces):
     agg = df.groupby("Discipline", as_index=False)[["Female_Pct", "Male_Pct"]].mean().round(2)
     agg["Discipline"] = pd.Categorical(agg["Discipline"], categories=DISCIPLINE_ORDER, ordered=True)
     return agg.sort_values("Discipline").reset_index(drop=True)
+
+
+def load_discipline_count_table_for_ratios(provinces):
+    """Estimated Female / Male headcount per discipline (Numbers-mode view of
+    the diverging chart). Source only has %, so counts are % x province
+    all-years total -- same estimate the Enrolment Details page uses."""
+    from data.details_recipes import load_discipline_count_table
+    df = load_discipline_count_table(provinces)
+    return df[df["Discipline"] != "Total"].reset_index(drop=True)
