@@ -32,7 +32,6 @@ sel_years = st.sidebar.multiselect(
     "Year", YEAR_ORDER, default=[], label_visibility="collapsed",
     placeholder="All years",
 )
-mode = value_mode_toggle()
 
 gender_df = apply_filters(load_gender_wise(), sel_provinces, sel_years)
 level_df = apply_filters(load_level_wise(), sel_provinces, sel_years)
@@ -47,6 +46,7 @@ render_header(
     stat={"title": "Total Graduates (Selected Years)", "value": f"{total_graduates:,}"},
     stat_icon="🎓",
 )
+mode = value_mode_toggle()
 
 
 def chart_card(fig):
