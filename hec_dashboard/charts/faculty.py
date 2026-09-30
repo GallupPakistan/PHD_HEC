@@ -1,7 +1,7 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from charts._base import base_layout, is_pct, share, fmt_compact, legend_below
+from charts._base import apply_finalize, base_layout, is_pct, share, fmt_compact, legend_below
 from styles.theme import COLORS, BOARD_COLOR_SEQUENCE
 
 # PhD / Non-PhD is used consistently in gold/blue across every chart on this
@@ -134,3 +134,6 @@ def sector_qualification_bar_chart(sector_df):
     fig.update_yaxes(range=[0, 108], ticksuffix="%")
     fig.update_xaxes(tickfont=dict(size=12))
     return fig
+
+
+apply_finalize(globals())
