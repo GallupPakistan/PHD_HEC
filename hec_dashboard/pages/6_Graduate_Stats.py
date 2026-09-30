@@ -6,6 +6,7 @@ from styles.theme import COLORS
 from components.header import render_header
 from components.kpi_card import kpi_card
 from components.cards import chart_card
+from components.toggle import value_mode_toggle
 from data.passout_recipes import (
     load_gender_wise, load_level_wise, apply_filters, aggregate_by_year, gender_totals, PROVINCES, YEAR_ORDER,
 )
@@ -56,39 +57,40 @@ with k3:
     kpi_card("Male Graduates", f"{int(g.loc[1, 'Count']):,}", color=MALE)
 with k4:
     kpi_card("PhD Graduates", f"{int(level_agg['PhD'].sum()):,}", color=COLORS["gold"])
+mode = value_mode_toggle()
 st.write("")
 
 # 1 ── Year x level heat-map
-chart_card(level_heatmap_chart(level_agg, "Numbers"),
+chart_card(level_heatmap_chart(level_agg, mode),
            "Source data doesn't split this table by gender, only by qualification level. Colour is scaled per level "
            "(row-wise) since Bachelor volumes run ~100x PGD/PhD — the number in each cell is the real headcount.")
 
 # 2 ── Gender trend
-chart_card(gender_line_chart(gender_agg, "Numbers"), "Hover over the lines to see exact values.")
+chart_card(gender_line_chart(gender_agg, mode), "Hover over the lines to see exact values.")
 
 # 3 ── Level-wise by year
-chart_card(level_stacked_bar_chart(level_agg, "Numbers").update_layout(
+chart_card(level_stacked_bar_chart(level_agg, mode).update_layout(
     title_text="Graduates by Qualification Level", yaxis_title="Graduates"))
 
 # 4 ── Gender donut + level donut (two compact charts side by side)
 c1, c2 = st.columns(2)
 with c1:
-    chart_card(gender_donut_chart(g, "Numbers"))
+    chart_card(gender_donut_chart(g, mode))
 with c2:
     chart_card(donut(lvl_tot["Level"], lvl_tot["Count"], "Level-wise Graduates",
-                     colors=[LEVEL_COLORS[l] for l in lvl_tot["Level"]], height=420))
+                     colors=[LEVEL_COLORS[l] for l in lvl_tot["Level"]], height=420, mode=mode))
 
 # 5 ── Province x gender
 chart_card(stacked_hbar(by_gender["Province"], [("Female", by_gender["Female"], FEMALE), ("Male", by_gender["Male"], MALE)],
-                        "Province-wise Graduates by Gender", xtitle="Graduates (selected years combined)"))
+                        "Province-wise Graduates by Gender", xtitle="Graduates (selected years combined)", mode=mode))
 
 # 6 ── Province x level
 chart_card(stacked_hbar(by_level["Province"],
                         [(LEVEL_LABELS.get(c, c), by_level[c], LEVEL_COLORS[LEVEL_LABELS.get(c, c)]) for c in LEVEL_COLS],
-                        "Province-wise Graduates by Qualification Level", xtitle="Graduates (selected years combined)"))
+                        "Province-wise Graduates by Qualification Level", xtitle="Graduates (selected years combined)", mode=mode))
 
 # 7 ── Province trend
 chart_card(multi_line([short_year(y) for y in prov_year.columns],
                       [(p, prov_year.loc[p].values, PROVINCE_COLORS.get(p)) for p in prov_year.index],
-                      "Province-wise Graduates Over the Years", ytitle="Graduates", xtitle="Year", height=480),
+                      "Province-wise Graduates Over the Years", ytitle="Graduates", xtitle="Year", height=480, mode=mode),
            "* = provisional year. Click a province in the legend to hide or show it.")
