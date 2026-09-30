@@ -49,59 +49,31 @@ def city_map_chart(city_df, mode="Numbers"):
 
 
 def year_growth_chart(year_df, mode="Numbers"):
-    """Percentage mode expresses both lines as a share of today's total HEIs:
-    the running total becomes 'how much of today's system existed by year X'
-    (reaching 100% at the latest year) and new-per-year becomes the share of
-    all HEIs founded that year."""
-    pct = is_pct(mode)
-    total = float(year_df["Cumulative_Total"].max()) or 1.0
-    cum = year_df["Cumulative_Total"] / total * 100 if pct else year_df["Cumulative_Total"]
-    new = year_df["New_Added"] / total * 100 if pct else year_df["New_Added"]
-    cum_text = [f"{v:.0f}%" for v in cum] if pct else list(cum)
-    new_text = [f"{v:.1f}%" for v in new] if pct else list(new)
-    hover = "%{y:.1f}%" if pct else "%{y:,.0f}"
+    """Two clean lines, no data labels (exact values are in the hover):
+    the running total of HEIs, and HEIs established in each year."""
     fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=year_df["Year"],
-            y=cum,
-            mode="lines+markers+text",
-            name="Total HEIs Established Over the Years" if not pct else "Cumulative % of today's HEIs",
-            line=dict(color=COLORS["positive"], width=3),
-            marker=dict(size=5),
-            text=cum_text,
-            textposition="top center",
-            textfont=dict(size=8, color=COLORS["positive"]),
-            hovertemplate=hover + "<extra>Cumulative</extra>",
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=year_df["Year"],
-            y=new,
-            mode="lines+markers+text",
-            name="New HEIs Established Within a Year" if not pct else "% of HEIs founded that year",
-            line=dict(color=COLORS["private"], width=2),
-            marker=dict(size=5),
-            text=new_text,
-            textposition="bottom center",
-            textfont=dict(size=8, color=COLORS["private"]),
-            hovertemplate=hover + "<extra>New</extra>",
-        )
-    )
-    fig.update_layout(**base_layout("Increase in HEIs over the years (1959–2025)", height=480))
+    fig.add_trace(go.Scatter(
+        x=year_df["Year"], y=year_df["Cumulative_Total"], mode="lines+markers",
+        name="Total HEIs established (running total)",
+        line=dict(color=COLORS["positive"], width=3), marker=dict(size=5),
+        hovertemplate="%{y:,.0f}<extra>Running total</extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=year_df["Year"], y=year_df["New_Added"], mode="lines+markers",
+        name="New HEIs established within the year",
+        line=dict(color=COLORS["private"], width=2), marker=dict(size=5),
+        hovertemplate="%{y:,.0f}<extra>New that year</extra>",
+    ))
+    fig.update_layout(**base_layout("Increase in HEIs over the years (1959–2025)", height=470))
     fig.update_layout(
         showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.22, xanchor="center", x=0.5),
-        xaxis_title="Year",
-        yaxis_title="Share of today's HEIs (%)" if pct else "Number of HEIs",
+        legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0.0),
+        margin=dict(t=105, b=60, l=70, r=30),
+        xaxis_title="Year", yaxis_title="Number of HEIs",
         hovermode="x unified",
-        margin=dict(t=50, b=80, l=40, r=20),
     )
-    if pct:
-        fig.update_yaxes(range=[-5, 115], ticksuffix="%", tickformat=".0f")
-    else:
-        fig.update_yaxes(range=[-15, year_df["Cumulative_Total"].max() * 1.15])
+    fig.update_xaxes(dtick=5, tickangle=0)
+    fig.update_yaxes(rangemode="tozero", gridcolor="rgba(0,0,0,0.06)")
     return fig
 
 
