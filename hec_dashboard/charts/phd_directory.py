@@ -3,7 +3,7 @@ import random
 import textwrap
 
 import plotly.graph_objects as go
-from charts._base import base_layout, is_pct, share, fmt_compact, legend_below
+from charts._base import apply_finalize, base_layout, is_pct, share, fmt_compact, legend_below
 from styles.theme import COLORS, FONTS, BOARD_COLOR_SEQUENCE
 
 
@@ -154,3 +154,6 @@ def subject_wordcloud_chart(subject_df, mode="Numbers", grand_total=None):
     fig.update_layout(**base_layout("PhDs Produced Popularity by Subject Keywords", height=460))
     fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", margin=dict(t=50, b=10, l=10, r=10))
     return fig
+
+
+apply_finalize(globals())
