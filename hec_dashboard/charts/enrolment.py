@@ -1,6 +1,6 @@
 import plotly.express as px
 import plotly.graph_objects as go
-from charts._base import base_layout, headroom_range, is_pct, share, legend_below
+from charts._base import apply_finalize, base_layout, headroom_range, is_pct, share, legend_below
 from styles.theme import COLORS, BOARD_COLOR_SEQUENCE
 
 
@@ -189,3 +189,6 @@ def gender_pie_chart(gender_summary_df, mode="Numbers"):
         margin=dict(t=50, b=80, l=40, r=40),
     )
     return fig
+
+
+apply_finalize(globals())
