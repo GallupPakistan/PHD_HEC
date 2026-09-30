@@ -290,23 +290,30 @@ def faculty_gender_donut_chart(gender_df, mode="Numbers"):
     return fig
 
 
-def phd_year_bar_chart(phd_df, mode="Numbers"):
+def phd_year_bar_chart(phd_df, mode="Percentage"):
     """PhDs per year -- no per-bar text (27 bars of rotated labels was the mess);
-    exact values are in the hover, the y-axis carries the scale."""
+    exact values are in the hover, the y-axis carries the scale.
+    Percentage mode = each year's share of all PhDs in the directory."""
+    pct = is_pct(mode)
     df = phd_df.reset_index(drop=True)
     labels = [str(y) for y in df["Year"]]
     keep = [i for i, l in enumerate(labels) if l.isdigit() and int(l) % 2 == 0 or not l.isdigit()]
+    raw = df["Total PhDs Produced"].astype(float)
+    y = raw / (float(raw.sum()) or 1.0) * 100 if pct else raw
     fig = go.Figure(go.Bar(
-        x=labels, y=df["Total PhDs Produced"].astype(float), name="PhDs produced",
+        x=labels, y=y, name="PhDs produced",
         marker_color=COLORS["gold"],
-        hovertemplate="%{x}: %{y:,.0f} PhDs<extra></extra>",
+        hovertemplate="%{x}: %{y:.2f}% of all PhDs<extra></extra>" if pct else "%{x}: %{y:,.0f} PhDs<extra></extra>",
     ))
     fig.update_layout(**base_layout("PhD Graduates Registered, by Year", height=420))
     fig.update_layout(showlegend=False, margin=dict(t=60, b=60, l=70, r=30),
-                      xaxis_title="Year", yaxis_title="PhDs Produced")
+                      xaxis_title="Year", yaxis_title="Share of all PhDs (%)" if pct else "PhDs Produced")
     fig.update_xaxes(type="category", tickmode="array",
                      tickvals=[labels[i] for i in keep], ticktext=[labels[i] for i in keep], tickangle=0)
-    fig.update_yaxes(tickformat="~s", gridcolor="rgba(0,0,0,0.06)")
+    if pct:
+        fig.update_yaxes(ticksuffix="%", tickformat=".1f", gridcolor="rgba(0,0,0,0.06)")
+    else:
+        fig.update_yaxes(tickformat="~s", gridcolor="rgba(0,0,0,0.06)")
     return fig
 
 
