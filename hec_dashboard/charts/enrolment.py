@@ -44,7 +44,7 @@ def _two_line_chart(df, a, b, a_color, b_color, title, mode, y_title):
     for name, y, color, pos in ((a, ya, a_color, pos_a), (b, yb, b_color, pos_b)):
         fig.add_trace(
             go.Scatter(
-                x=x, y=y, mode="lines+markers+text", name=name,
+                x=x, y=y, mode="lines+markers", name=name,
                 line=dict(color=color, width=3), marker=dict(size=6),
                 text=[fmt(v) for v in y], textposition=pos,
                 textfont=dict(size=8, color=color),
@@ -61,11 +61,11 @@ def _two_line_chart(df, a, b, a_color, b_color, title, mode, y_title):
         margin=dict(t=60, b=130, l=50, r=30),
     )
     fig.update_xaxes(automargin=True)
-    fig.update_yaxes(range=headroom_range(ya, yb, pad=0.18, floor_pad=0.12))
+    fig.update_yaxes(range=headroom_range(ya, yb, pad=0.18, floor_pad=0))
     if pct:
         fig.update_yaxes(ticksuffix="%", tickformat=".0f")
     else:
-        fig.update_yaxes(tickformat=".1s")
+        fig.update_yaxes(tickformat="~s")
     return fig
 
 
@@ -135,7 +135,7 @@ def discipline_gender_bar_chart(disc_df, mode="Numbers"):
     if pct:
         fig.update_xaxes(ticksuffix="%", tickformat=".0f")
     else:
-        fig.update_xaxes(tickformat=".2s")
+        fig.update_xaxes(tickformat="~s")
     fig.update_yaxes(automargin=True, tickfont=dict(size=11))
     return fig
 
