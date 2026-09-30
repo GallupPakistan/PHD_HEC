@@ -17,7 +17,6 @@ from charts.universities import city_map_chart, year_growth_chart, sector_donut_
 
 st.set_page_config(page_title=APP_NAME, page_icon=PAGE_ICON, layout="wide")
 inject_css()
-mode = value_mode_toggle()
 
 province_df = load_province_table()
 sector_df = load_sector_summary()
@@ -40,6 +39,7 @@ render_header(
     stat={"title": "Total HEIs", "value": f"{total_heis:,}"},
     stat_icon="🏛️",
 )
+mode = value_mode_toggle()
 
 k1, k2, k3 = st.columns(3)
 with k1:
@@ -55,7 +55,7 @@ st.write("")
 # Row 1: Map (full width)
 # ---------------------------------------------------------------------------
 st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-fig_map = city_map_chart(city_df)
+fig_map = city_map_chart(city_df, mode)
 st.plotly_chart(fig_map, use_container_width=True, config=PLOTLY_CONFIG)
 st.caption("Bubble size/city = number of HEIs with main campus there. City-level coordinates (not individual campuses).")
 st.markdown("</div>", unsafe_allow_html=True)
@@ -75,7 +75,7 @@ col3, col4 = st.columns([1.4, 1])
 
 with col3:
     st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-    fig_line = year_growth_chart(year_df)
+    fig_line = year_growth_chart(year_df, mode)
     st.plotly_chart(fig_line, use_container_width=True, config=PLOTLY_CONFIG)
     st.markdown("</div>", unsafe_allow_html=True)
 
