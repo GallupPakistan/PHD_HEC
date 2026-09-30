@@ -53,7 +53,6 @@ sel_faculty_types = st.sidebar.multiselect(
     "Faculty Type", FACULTY_TYPES, default=[], label_visibility="collapsed",
     placeholder="All (Full Time, Part Time)",
 )
-mode = value_mode_toggle()
 
 province_table = load_province_table(sel_provinces, sel_years, sel_faculty_types, sel_qualifications)
 pct_by_year = load_pct_by_year_table(sel_provinces, sel_years, sel_faculty_types, sel_qualifications)
@@ -67,6 +66,7 @@ render_header(
     stat={"title": "Total Faculty", "value": f"{total_faculty:,}"},
     stat_icon="🧑‍🏫",
 )
+mode = value_mode_toggle()
 
 
 def chart_card(fig):
@@ -100,7 +100,11 @@ with col2:
 col3, col4 = st.columns([1, 1.2])
 
 with col3:
-    chart_card(qualification_share_donut(pct_by_year.iloc[0]))
+    chart_card(qualification_share_donut(
+        pct_by_year.iloc[0],
+        province_table.loc[province_table["Province"] == "Total"].iloc[0],
+        mode,
+    ))
 
 with col4:
     chart_card(sector_qualification_bar_chart(sector_table))
