@@ -46,7 +46,7 @@ def gender_line_chart(gender_agg, mode="Numbers"):
                                 ("Male", male, COLORS["public"], male_pos)):
         fig.add_trace(
             go.Scatter(
-                x=x, y=y, mode="lines+markers+text", name=name,
+                x=x, y=y, mode="lines+markers", name=name,
                 line=dict(color=color, width=3), marker=dict(size=6),
                 text=[fmt(v) for v in y], textposition=pos,
                 textfont=dict(size=9, color=color),
@@ -63,7 +63,7 @@ def gender_line_chart(gender_agg, mode="Numbers"):
         margin=dict(t=50, b=150, l=60, r=30),
     )
     fig.update_xaxes(tickangle=-25, automargin=True)
-    fig.update_yaxes(range=headroom_range(female, male, pad=0.16, floor_pad=0.14))
+    fig.update_yaxes(range=headroom_range(female, male, pad=0.16, floor_pad=0))
     if pct:
         fig.update_yaxes(ticksuffix="%", tickformat=".0f")
     else:
