@@ -1,6 +1,6 @@
 import plotly.express as px
 import plotly.graph_objects as go
-from charts._base import base_layout, is_pct, share, fmt_compact, legend_below
+from charts._base import apply_finalize, base_layout, is_pct, share, fmt_compact, legend_below
 from styles.theme import COLORS, BOARD_COLOR_SEQUENCE
 
 
@@ -75,7 +75,7 @@ def province_hei_bar_chart(province_bars, mode="Numbers"):
     return fig
 
 
-def _trend_chart(x, total, title, name, color, fill, mode, y_title, height=340):
+def _trend_chart(x, total, title, name, color, fill, mode, y_title, height=340, title_pct=None):
     """Total-over-time area chart. Percentage mode shows year-over-year growth
     (a total has no 'share' of itself, growth is its natural % view)."""
     pct = is_pct(mode)
@@ -84,10 +84,13 @@ def _trend_chart(x, total, title, name, color, fill, mode, y_title, height=340):
         y = y.pct_change() * 100
         label_name = "Year-over-year growth"
         text = ["" if v != v else f"{v:+.1f}%" for v in y]
+        # label above the marker for growth, below it for decline, so a label never sits on the line
+        positions = ["bottom center" if (v == v and v < 0) else "top center" for v in y]
         hover = "%{y:+.1f}%"
     else:
         label_name = name
         text = [fmt_compact(v) for v in y]
+        positions = "top center"
         hover = "%{y:,.0f}"
     fig = go.Figure()
     fig.add_trace(
@@ -96,12 +99,12 @@ def _trend_chart(x, total, title, name, color, fill, mode, y_title, height=340):
             mode="lines+markers+text", name=label_name,
             line=dict(color=color, width=3), marker=dict(size=6),
             fill="tozeroy", fillcolor=fill,
-            text=text, textposition="top center",
+            text=text, textposition=positions,
             textfont=dict(size=9, color=color), cliponaxis=False,
             hovertemplate=f"{hover}<extra>{label_name}</extra>",
         )
     )
-    fig.update_layout(**base_layout(title + (" — YoY Growth" if pct else ""), height=height))
+    fig.update_layout(**base_layout((title_pct or title + " — YoY Growth") if pct else title, height=height))
     fig.update_layout(
         showlegend=True,
         legend=legend_below(-0.42),
@@ -124,6 +127,7 @@ def enrolment_trend_mini_chart(gender_agg, mode="Numbers"):
     return _trend_chart(
         gender_agg["Year"], gender_agg["Total"], "Total Enrolment Over the Years",
         "Total Enrolment", COLORS["accent"], "rgba(59,130,246,0.12)", mode, "Enrolment",
+        title_pct="Total Enrolment — YoY Growth",
     )
 
 
@@ -131,6 +135,7 @@ def graduates_trend_mini_chart(gender_agg, mode="Numbers"):
     return _trend_chart(
         gender_agg["Year"], gender_agg["Total"], "Graduates (Passout) Over the Years",
         "Total Graduates", COLORS["positive"], "rgba(34,197,94,0.12)", mode, "Graduates",
+        title_pct="Graduates — YoY Growth",
     )
 
 
@@ -296,8 +301,8 @@ def phd_year_bar_chart(phd_df, mode="Numbers"):
             name="Share of all PhDs" if pct else "PhDs produced",
             marker_color=COLORS["gold"],
             text=[f"{v:.1f}%" if pct else fmt_compact(v) for v in y],
-            textposition="outside", cliponaxis=False,
-            textfont=dict(size=8, color=COLORS["text_on_light"]),
+            textposition="outside", textangle=-90, cliponaxis=False,
+            textfont=dict(size=9, color=COLORS["text_on_light"]),
             hovertemplate=("%{x}: %{y:.1f}%<extra></extra>" if pct else "%{x}: %{y:,.0f}<extra></extra>"),
         )
     )
@@ -311,7 +316,10 @@ def phd_year_bar_chart(phd_df, mode="Numbers"):
     )
     fig.update_xaxes(tickangle=-45)
     peak = float(y.max()) if len(y) else 0
-    fig.update_yaxes(range=[0, peak * 1.2 if peak else 1])
+    fig.update_yaxes(range=[0, peak * 1.3 if peak else 1])
     if pct:
         fig.update_yaxes(ticksuffix="%", tickformat=".0f")
     return fig
+
+
+apply_finalize(globals())
