@@ -45,7 +45,7 @@ def level_ratio_area_chart(level_table, mode="Percentage"):
     if pct:
         fig.update_yaxes(ticksuffix="%", range=[0, 100])
     else:
-        fig.update_yaxes(tickformat=".2s")
+        fig.update_yaxes(tickformat="~s")
     return fig
 
 
@@ -109,7 +109,7 @@ def _sector_count_chart(sector_table):
                              ("Public", COLORS["public"], "bottom center")):
         y = sector_table[name]
         fig.add_trace(go.Scatter(
-            x=x, y=y, mode="lines+markers+text", name=name,
+            x=x, y=y, mode="lines+markers", name=name,
             line=dict(color=color, width=3), marker=dict(size=6),
             text=[fmt_compact(v) for v in y], textposition=pos,
             textfont=dict(size=9, color=color),
@@ -125,7 +125,7 @@ def _sector_count_chart(sector_table):
         margin=dict(t=50, b=130, l=60, r=20),
     )
     fig.update_xaxes(tickangle=-25, automargin=True)
-    fig.update_yaxes(tickformat=".2s", rangemode="tozero")
+    fig.update_yaxes(tickformat="~s", rangemode="tozero")
     return fig
 
 
@@ -156,7 +156,7 @@ def sector_share_trend_chart(sector_table, mode="Percentage"):
         name="Public-led (below 50%)", showlegend=True, hoverinfo="skip",
     ))
     fig.add_trace(go.Scatter(
-        x=x, y=private, mode="lines+markers+text", name="Private Share",
+        x=x, y=private, mode="lines+markers", name="Private Share",
         line=dict(color=COLORS["private"], width=3), marker=dict(size=6),
         text=[f"{v:.0f}%" for v in private], textposition="top center",
         textfont=dict(size=9, color=COLORS["private"]),
