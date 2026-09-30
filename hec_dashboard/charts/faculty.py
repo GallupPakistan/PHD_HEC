@@ -64,7 +64,7 @@ def province_qualification_bar_chart(province_df, mode="Numbers"):
     if pct:
         fig.update_xaxes(ticksuffix="%", tickformat=".0f", tickvals=[0, 20, 40, 60, 80, 100])
     else:
-        fig.update_xaxes(tickformat=".2s")
+        fig.update_xaxes(tickformat="~s")
     fig.update_yaxes(automargin=True, tickfont=dict(size=11))
     return fig
 
