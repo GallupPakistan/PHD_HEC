@@ -25,7 +25,7 @@ def hei_growth_mini_chart(year_df, mode="Numbers"):
             fillcolor="rgba(201,168,76,0.15)",
         )
     )
-    fig.update_layout(**base_layout("HEIs Established Over the Years (1959–2025)", height=340))
+    fig.update_layout(**base_layout("HEIs Established Over the Years (1959–2025)", height=420))
     fig.update_layout(
         showlegend=True,
         legend=legend_below(-0.25),
@@ -96,7 +96,7 @@ def _trend_chart(x, total, title, name, color, fill, mode, y_title, height=340, 
     fig.add_trace(
         go.Scatter(
             x=x.astype(str).reset_index(drop=True), y=y,
-            mode="lines+markers+text", name=label_name,
+            mode="lines+markers", name=label_name,
             line=dict(color=color, width=3), marker=dict(size=6),
             fill="tozeroy", fillcolor=fill,
             text=text, textposition=positions,
@@ -117,7 +117,7 @@ def _trend_chart(x, total, title, name, color, fill, mode, y_title, height=340, 
     if pct:
         fig.update_yaxes(ticksuffix="%", tickformat=".0f")
     else:
-        fig.update_yaxes(tickformat=".1s")
+        fig.update_yaxes(tickformat="~s")
         peak = float(y.max()) if len(y) else 0
         fig.update_yaxes(range=[0, peak * 1.18 if peak else 1])
     return fig
@@ -183,7 +183,7 @@ def level_stacked_bar_chart(level_agg, mode="Numbers"):
     if pct:
         fig.update_yaxes(ticksuffix="%", tickformat=".0f", range=[0, 100])
     else:
-        fig.update_yaxes(tickformat=".1s")
+        fig.update_yaxes(tickformat="~s")
     return fig
 
 
@@ -222,7 +222,7 @@ def discipline_bar_chart_overview(disc_df, mode="Numbers"):
     if pct:
         fig.update_xaxes(ticksuffix="%", tickformat=".0f")
     else:
-        fig.update_xaxes(tickformat=".1s")
+        fig.update_xaxes(tickformat="~s")
     fig.update_yaxes(automargin=True, categoryorder="array", categoryarray=order)
     return fig
 
@@ -291,34 +291,22 @@ def faculty_gender_donut_chart(gender_df, mode="Numbers"):
 
 
 def phd_year_bar_chart(phd_df, mode="Numbers"):
-    pct = is_pct(mode)
-    raw = phd_df["Total PhDs Produced"].reset_index(drop=True).astype(float)
-    y = share(raw) if pct else raw
-    fig = go.Figure(
-        go.Bar(
-            x=phd_df["Year"].reset_index(drop=True),
-            y=y,
-            name="Share of all PhDs" if pct else "PhDs produced",
-            marker_color=COLORS["gold"],
-            text=[f"{v:.1f}%" if pct else fmt_compact(v) for v in y],
-            textposition="outside", textangle=-90, cliponaxis=False,
-            textfont=dict(size=9, color=COLORS["text_on_light"]),
-            hovertemplate=("%{x}: %{y:.1f}%<extra></extra>" if pct else "%{x}: %{y:,.0f}<extra></extra>"),
-        )
-    )
-    fig.update_layout(**base_layout("PhD Graduates Registered, by Year", height=340))
-    fig.update_layout(
-        showlegend=True,
-        legend=legend_below(-0.45),
-        xaxis_title="Year",
-        yaxis_title="Share of All PhDs (%)" if pct else "PhDs Produced",
-        margin=dict(t=50, b=110, l=50, r=20),
-    )
-    fig.update_xaxes(tickangle=-45)
-    peak = float(y.max()) if len(y) else 0
-    fig.update_yaxes(range=[0, peak * 1.3 if peak else 1])
-    if pct:
-        fig.update_yaxes(ticksuffix="%", tickformat=".0f")
+    """PhDs per year -- no per-bar text (27 bars of rotated labels was the mess);
+    exact values are in the hover, the y-axis carries the scale."""
+    df = phd_df.reset_index(drop=True)
+    labels = [str(y) for y in df["Year"]]
+    keep = [i for i, l in enumerate(labels) if l.isdigit() and int(l) % 2 == 0 or not l.isdigit()]
+    fig = go.Figure(go.Bar(
+        x=labels, y=df["Total PhDs Produced"].astype(float), name="PhDs produced",
+        marker_color=COLORS["gold"],
+        hovertemplate="%{x}: %{y:,.0f} PhDs<extra></extra>",
+    ))
+    fig.update_layout(**base_layout("PhD Graduates Registered, by Year", height=420))
+    fig.update_layout(showlegend=False, margin=dict(t=60, b=60, l=70, r=30),
+                      xaxis_title="Year", yaxis_title="PhDs Produced")
+    fig.update_xaxes(type="category", tickmode="array",
+                     tickvals=[labels[i] for i in keep], ticktext=[labels[i] for i in keep], tickangle=0)
+    fig.update_yaxes(tickformat="~s", gridcolor="rgba(0,0,0,0.06)")
     return fig
 
 
