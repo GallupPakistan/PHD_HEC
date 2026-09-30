@@ -2,26 +2,19 @@ import streamlit as st
 
 from config.settings import APP_NAME, PAGE_ICON
 from styles.css import inject_css
-from styles.theme import PLOTLY_CONFIG
+from styles.theme import COLORS
 from components.header import render_header
-from components.toggle import value_mode_toggle
-from charts._base import is_pct
+from components.kpi_card import kpi_card
+from components.cards import chart_card
 from data.enrolment_recipes import PROVINCES, YEAR_ORDER
 from data.ratios_recipes import (
-    load_level_ratio_table,
-    load_sector_ratio_table,
-    load_level_ratio_summary,
-    load_discipline_ratio_table,
-    load_level_count_table,
-    load_sector_count_table,
+    load_level_ratio_summary, load_level_count_table, load_sector_count_table,
     load_discipline_count_table_for_ratios,
 )
+from data.extra_recipes import enrol_by_province, LEVEL_COLS, LEVEL_LABELS
 from charts.enrolment import level_pie_chart
-from charts.ratios import (
-    level_ratio_area_chart,
-    discipline_gender_diverging_chart,
-    sector_share_trend_chart,
-)
+from charts.ratios import level_ratio_area_chart, discipline_gender_diverging_chart, sector_share_trend_chart
+from charts.extra import donut, stacked_hbar, LEVEL_COLORS, PUBLIC, PRIVATE
 
 st.set_page_config(page_title=f"{APP_NAME} — Enrolment Ratios", page_icon=PAGE_ICON, layout="wide")
 inject_css()
@@ -31,64 +24,64 @@ inject_css()
 # ---------------------------------------------------------------------------
 st.sidebar.markdown("#### Province")
 sel_provinces = st.sidebar.multiselect(
-    "Province", PROVINCES, default=[], label_visibility="collapsed",
-    placeholder="All provinces",
+    "Province", PROVINCES, default=[], label_visibility="collapsed", placeholder="All provinces",
 )
 st.sidebar.markdown("#### Year")
 sel_years = st.sidebar.multiselect(
-    "Year", YEAR_ORDER, default=[], label_visibility="collapsed",
-    placeholder="All years",
+    "Year", YEAR_ORDER, default=[], label_visibility="collapsed", placeholder="All years",
 )
 
-level_table = load_level_ratio_table(sel_provinces, sel_years)
-sector_table = load_sector_ratio_table(sel_provinces, sel_years)
+level_counts = load_level_count_table(sel_provinces, sel_years)
+sector_counts = load_sector_count_table(sel_provinces, sel_years)
 level_summary = load_level_ratio_summary(sel_provinces, sel_years)
-discipline_table = load_discipline_ratio_table(sel_provinces)
+discipline_counts = load_discipline_count_table_for_ratios(sel_provinces)
+by_level = enrol_by_province(sel_provinces, sel_years, "level")
+by_sector = enrol_by_province(sel_provinces, sel_years, "sector")
 
 bachelor_share = level_summary.loc[level_summary["Level"] == "Bachelor", "Percentage"]
 bachelor_share = float(bachelor_share.iloc[0]) if not bachelor_share.empty else 0.0
 render_header(
     "Enrolment Ratios",
-    "Share of enrolment by qualification level, sector, and discipline, by gender.",
+    "How enrolment divides by qualification level, sector, discipline and province.",
     stat={"title": "Bachelor Share of Enrolment", "value": f"{bachelor_share:.1f}%"},
     stat_icon="📊",
 )
-# This is a "ratios" page, so it has its own switch that starts on Percentage.
-mode = value_mode_toggle(page_key="ratios", default="Percentage")
-pct = is_pct(mode)
 
+sector_tot = {"Public": int(sector_counts["Public"].sum()), "Private": int(sector_counts["Private"].sum())}
+k1, k2, k3 = st.columns(3)
+with k1:
+    kpi_card("Bachelor Share", f"{bachelor_share:.1f}%", color=COLORS["accent"])
+with k2:
+    kpi_card("Public Enrolment", f"{sector_tot['Public']:,}", color=PUBLIC)
+with k3:
+    kpi_card("Private Enrolment", f"{sector_tot['Private']:,}", color=PRIVATE)
+st.write("")
 
-def chart_card(fig):
-    st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
-    st.markdown("</div>", unsafe_allow_html=True)
+# 1 ── Level by year
+chart_card(level_ratio_area_chart(level_counts, "Numbers"))
 
+# 2 ── Level pie + sector donut (two compact charts side by side)
+c1, c2 = st.columns(2)
+with c1:
+    chart_card(donut(level_summary["Level"], level_summary["Count"], "Level-wise Enrolment",
+                     colors=[LEVEL_COLORS[l] for l in level_summary["Level"]], height=460))
+with c2:
+    chart_card(donut(["Public", "Private"], [sector_tot["Public"], sector_tot["Private"]],
+                     "Sector-wise Enrolment", colors=[PUBLIC, PRIVATE], height=460))
 
-# ---------------------------------------------------------------------------
-# Row 1: Year & Level-wise share (100% stacked area) + Level-wise pie
-# ---------------------------------------------------------------------------
-col1, col2 = st.columns([1.4, 1])
+# 3 ── Discipline x gender
+chart_card(discipline_gender_diverging_chart(discipline_counts, "Numbers"),
+           "Discipline data is province-wise only (no year breakdown in the source data). "
+           "Headcounts are estimates: each province's % × its all-years enrolment.")
 
-with col1:
-    chart_card(level_ratio_area_chart(level_table if pct else load_level_count_table(sel_provinces, sel_years), mode))
+# 4 ── Sector trend
+chart_card(sector_share_trend_chart(sector_counts, "Numbers"))
 
-with col2:
-    chart_card(level_pie_chart(level_summary, mode))
+# 5 ── Province x level
+chart_card(stacked_hbar(by_level["Province"],
+                        [(LEVEL_LABELS.get(c, c), by_level[c], LEVEL_COLORS[LEVEL_LABELS.get(c, c)]) for c in LEVEL_COLS],
+                        "Province-wise Enrolment by Qualification Level", xtitle="Enrolment (selected years combined)"))
 
-# ---------------------------------------------------------------------------
-# Row 2: Discipline & Gender share (diverging bar) + Sector share trend
-# ---------------------------------------------------------------------------
-col3, col4 = st.columns([1.4, 1])
-
-with col3:
-    st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-    disc_df = discipline_table if pct else load_discipline_count_table_for_ratios(sel_provinces)
-    st.plotly_chart(discipline_gender_diverging_chart(disc_df, mode), use_container_width=True, config=PLOTLY_CONFIG)
-    st.caption(
-        "Discipline data is province-wise only (no year breakdown available in source data)."
-        + ("" if pct else " Headcounts are estimates: each province's % × its all-years enrolment.")
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with col4:
-    chart_card(sector_share_trend_chart(sector_table if pct else load_sector_count_table(sel_provinces, sel_years), mode))
+# 6 ── Province x sector
+chart_card(stacked_hbar(by_sector["Province"], [("Public", by_sector["Public"], PUBLIC), ("Private", by_sector["Private"], PRIVATE)],
+                        "Province-wise Enrolment by Sector", xtitle="Enrolment (selected years combined)"))
