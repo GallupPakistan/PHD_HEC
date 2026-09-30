@@ -6,6 +6,7 @@ from styles.theme import COLORS
 from components.header import render_header
 from components.kpi_card import kpi_card
 from components.cards import chart_card
+from components.toggle import value_mode_toggle
 from data.enrolment_recipes import (
     load_gender_wise, load_level_wise, load_sector_wise, apply_filters, aggregate_by_year, PROVINCES, YEAR_ORDER,
 )
@@ -59,35 +60,37 @@ with k3:
 with k4:
     lead = by_prov.loc[by_prov["Total"].idxmax(), "Province"] if not by_prov.empty else "-"
     kpi_card("Largest Province", str(lead), color=COLORS["gold"])
+mode = value_mode_toggle()
 st.write("")
 
 # All charts are full width, one after another, except the two small donut/pie pair.
 
 # 1 ── Gender trend
-chart_card(gender_line_chart(gender_agg, "Numbers"), "Hover over the lines to see exact values.")
+chart_card(gender_line_chart(gender_agg, mode), "Hover over the lines to see exact values.")
 
 # 2 ── Total enrolment trend
 chart_card(multi_line([short_year(y) for y in gender_agg["Year"]],
                       [("Total enrolment", gender_agg["Total"], COLORS["accent"])],
-                      "Total Enrolment Over the Years", ytitle="Enrolment", xtitle="Year", area=True),
-           "* = provisional year.")
+                      "Total Enrolment Over the Years", ytitle="Enrolment", xtitle="Year", area=True,
+                      mode=mode, pct_kind="growth"),
+           "* = provisional year. In percentage view this shows year-over-year growth.")
 
 # 3 ── Level-wise by year
-chart_card(level_stacked_bar_chart(level_agg, "Numbers"))
+chart_card(level_stacked_bar_chart(level_agg, mode))
 
 # 4 ── Sector trend
-chart_card(sector_trend_chart(sector_agg, "Numbers"))
+chart_card(sector_trend_chart(sector_agg, mode))
 
 # 5 ── Gender split (one compact chart, beside the province-wise gender chart is too cramped -> stacked below)
-chart_card(gender_pie_chart(gender_summary, "Numbers"))
+chart_card(gender_pie_chart(gender_summary, mode))
 
 # 6 ── Province-wise enrolment by gender
 chart_card(stacked_hbar(by_prov["Province"], [("Female", by_prov["Female"], FEMALE), ("Male", by_prov["Male"], MALE)],
-                        "Province-wise Enrolment by Gender", xtitle="Enrolment (selected years combined)"))
+                        "Province-wise Enrolment by Gender", xtitle="Enrolment (selected years combined)", mode=mode))
 
 # 7 ── Province trend
 years_shown = list(prov_year.columns)
 chart_card(multi_line([short_year(y) for y in years_shown],
                       [(p, prov_year.loc[p].values, PROVINCE_COLORS.get(p)) for p in prov_year.index],
-                      "Province-wise Enrolment Over the Years", ytitle="Enrolment", xtitle="Year", height=480),
+                      "Province-wise Enrolment Over the Years", ytitle="Enrolment", xtitle="Year", height=480, mode=mode),
            "* = provisional year. Click a province in the legend to hide or show it.")
