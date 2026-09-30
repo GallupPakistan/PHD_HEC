@@ -8,14 +8,18 @@ def _fmt_millions(v):
     return f"{v / 1_000_000:.2f}M"
 
 
-def hei_growth_mini_chart(year_df):
+def hei_growth_mini_chart(year_df, mode="Numbers"):
+    """Percentage mode = running total as a share of today's total HEIs."""
+    pct = is_pct(mode)
+    total = float(year_df["Cumulative_Total"].max()) or 1.0
+    y = year_df["Cumulative_Total"] / total * 100 if pct else year_df["Cumulative_Total"]
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
             x=year_df["Year"],
-            y=year_df["Cumulative_Total"],
+            y=y,
             mode="lines",
-            name="Total HEIs (running total)",
+            name="Cumulative % of today's HEIs" if pct else "Total HEIs (running total)",
             line=dict(color=COLORS["gold"], width=3),
             fill="tozeroy",
             fillcolor="rgba(201,168,76,0.15)",
@@ -26,10 +30,12 @@ def hei_growth_mini_chart(year_df):
         showlegend=True,
         legend=legend_below(-0.25),
         xaxis_title="Year",
-        yaxis_title="Total HEIs",
+        yaxis_title="Share of today's HEIs (%)" if pct else "Total HEIs",
         margin=dict(t=50, b=80, l=50, r=20),
         hovermode="x unified",
     )
+    if pct:
+        fig.update_yaxes(ticksuffix="%", tickformat=".0f", range=[0, 105])
     return fig
 
 
