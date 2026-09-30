@@ -12,76 +12,62 @@ def _wrap(label, width=16):
 
 
 def phd_year_area_chart(year_df, mode="Numbers"):
-    """Single-series PhD-output trend across ~26 years -- a gold filled
-    line rather than a 27-bar chart (too dense to label cleanly).
-    Percentage mode = each year's share of all PhDs produced."""
-    pct = is_pct(mode)
-    df = year_df[year_df["Year"] != "Total"].reset_index(drop=True)
-    raw = df["Total PhDs Produced"].astype(float)
-    y = share(raw) if pct else raw
-    name = "Share of all PhDs" if pct else "PhDs Produced"
+    """PhDs produced per year, 2001 onward. Full-width, one tick every 2 years,
+    horizontal (no rotated/overlapping labels), no per-point text.
+    2026 is a partial year, so it is drawn as a dashed hop with its own legend
+    entry instead of looking like a real drop-off. `year_df` comes from
+    data.extra_recipes.phd_year_series()."""
+    df = year_df.reset_index(drop=True)
+    done = df[df["Year"] < df["Year"].max()]
+    last = df.tail(2)
     fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=df["Year"], y=y,
-            mode="lines+markers", name=name,
-            line=dict(color=COLORS["gold"], width=3),
-            marker=dict(size=5, color=COLORS["gold"]),
-            fill="tozeroy",
-            fillcolor="rgba(201,168,76,0.15)",
-            hovertemplate=("%{x}<br>%{y:.1f}% of all PhDs<extra></extra>" if pct
-                           else "%{x}<br>%{y:,.0f} PhDs<extra></extra>"),
-        )
-    )
+    fig.add_trace(go.Scatter(
+        x=done["Year"], y=done["Numbers"], mode="lines+markers", name="PhDs produced",
+        line=dict(color=COLORS["gold"], width=3), marker=dict(size=7),
+        fill="tozeroy", fillcolor="rgba(201,168,76,0.15)",
+        hovertemplate="%{x}: %{y:,.0f} PhDs<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=last["Year"], y=last["Numbers"], mode="lines+markers", name=f"{int(df['Year'].max())} (partial year)",
+        line=dict(color=COLORS["gold"], width=3, dash="dash"),
+        marker=dict(size=9, symbol="circle-open", line=dict(width=2)),
+        hovertemplate="%{x}: %{y:,.0f} PhDs so far<extra></extra>",
+    ))
     fig.update_layout(**base_layout("Year-wise PhDs Produced", height=460))
     fig.update_layout(
         showlegend=True,
-        legend=legend_below(-0.32),
-        xaxis_title="Year",
-        yaxis_title="Share of All PhDs (%)" if pct else "PhDs Produced",
-        margin=dict(t=50, b=120, l=60, r=20),
-        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0.0),
+        margin=dict(t=105, b=70, l=70, r=30),
+        xaxis_title="Year", yaxis_title="PhDs Produced", hovermode="x unified",
     )
-    fig.update_xaxes(tickangle=-45, automargin=True)
-    if pct:
-        fig.update_yaxes(ticksuffix="%", tickformat=".0f")
-    else:
-        fig.update_yaxes(tickformat=",")
+    fig.update_xaxes(dtick=2, tickangle=0, tickfont=dict(size=12))
+    fig.update_yaxes(tickformat=",", rangemode="tozero", gridcolor="rgba(0,0,0,0.06)")
     return fig
 
 
+def _clean_discipline(name):
+    """'05 Natural sciences, mathematics and statistics' -> 'Natural sciences, mathematics and statistics'."""
+    parts = str(name).split(" ", 1)
+    return parts[1] if len(parts) == 2 and parts[0].isdigit() else str(name)
+
+
 def discipline_bar_chart(discipline_df, mode="Numbers"):
-    pct = is_pct(mode)
-    raw = discipline_df["Numbers"].reset_index(drop=True).astype(float)
-    y = share(raw) if pct else raw
-    fig = go.Figure()
-    fig.add_trace(
-        go.Bar(
-            x=[_wrap(d) for d in discipline_df["Discipline"]],
-            y=y,
-            name="Share of all PhDs" if pct else "PhDs produced",
-            marker_color=COLORS["accent"],
-            text=[f"{v:.1f}%" if pct else f"{int(v):,}" for v in y],
-            textposition="outside", cliponaxis=False,
-            textfont=dict(size=10, color=COLORS["text_on_light"]),
-            hovertemplate=("%{x}<br>%{y:.1f}%<extra></extra>" if pct else "%{x}<br>%{y:,.0f}<extra></extra>"),
-        )
-    )
-    fig.update_layout(**base_layout("PhDs Produced by Discipline", height=460))
-    fig.update_layout(
-        showlegend=True,
-        legend=legend_below(-0.42),
-        xaxis_title="Discipline",
-        yaxis_title="Share of All PhDs (%)" if pct else "Total PhDs Produced",
-        margin=dict(t=50, b=150, l=50, r=20),
-    )
-    fig.update_xaxes(tickfont=dict(size=9))
-    peak = float(y.max()) if len(y) else 0
-    fig.update_yaxes(range=[0, peak * 1.15 if peak else 1])
-    if pct:
-        fig.update_yaxes(ticksuffix="%", tickformat=".0f")
-    else:
-        fig.update_yaxes(tickformat=",")
+    """Horizontal bars with the FULL discipline name on the left (the old
+    vertical bars forced 10 long names into a rotated jumble). Biggest on top."""
+    df = discipline_df.sort_values("Numbers", ascending=True).reset_index(drop=True)
+    names = [_clean_discipline(d) for d in df["Discipline"]]
+    vals = df["Numbers"].astype(float)
+    fig = go.Figure(go.Bar(
+        y=names, x=vals, orientation="h", marker_color=COLORS["accent"],
+        text=[f"{int(v):,}" for v in vals], textposition="outside", cliponaxis=False,
+        textfont=dict(size=12, color=COLORS["text_on_light"]),
+        hovertemplate="%{y}<br>%{x:,.0f} PhDs<extra></extra>",
+    ))
+    fig.update_layout(**base_layout("PhDs Produced by Discipline", height=max(420, 44 * len(df) + 110)))
+    fig.update_layout(showlegend=False, margin=dict(t=60, b=60, l=10, r=80), bargap=0.3,
+                      xaxis_title="PhDs Produced")
+    fig.update_xaxes(range=[0, float(vals.max()) * 1.15], tickformat="~s", gridcolor="rgba(0,0,0,0.06)")
+    fig.update_yaxes(automargin=True, tickfont=dict(size=13), ticksuffix="  ")
     return fig
 
 
