@@ -4,12 +4,17 @@ from config.settings import APP_NAME, PAGE_ICON
 from styles.css import inject_css
 from styles.theme import PLOTLY_CONFIG
 from components.header import render_header
+from components.toggle import value_mode_toggle
+from charts._base import is_pct
 from data.enrolment_recipes import PROVINCES, YEAR_ORDER
 from data.ratios_recipes import (
     load_level_ratio_table,
     load_sector_ratio_table,
     load_level_ratio_summary,
     load_discipline_ratio_table,
+    load_level_count_table,
+    load_sector_count_table,
+    load_discipline_count_table_for_ratios,
 )
 from charts.enrolment import level_pie_chart
 from charts.ratios import (
@@ -48,6 +53,9 @@ render_header(
     stat={"title": "Bachelor Share of Enrolment", "value": f"{bachelor_share:.1f}%"},
     stat_icon="📊",
 )
+# This is a "ratios" page, so it has its own switch that starts on Percentage.
+mode = value_mode_toggle(page_key="ratios", default="Percentage")
+pct = is_pct(mode)
 
 
 def chart_card(fig):
@@ -62,10 +70,10 @@ def chart_card(fig):
 col1, col2 = st.columns([1.4, 1])
 
 with col1:
-    chart_card(level_ratio_area_chart(level_table))
+    chart_card(level_ratio_area_chart(level_table if pct else load_level_count_table(sel_provinces, sel_years), mode))
 
 with col2:
-    chart_card(level_pie_chart(level_summary))
+    chart_card(level_pie_chart(level_summary, mode))
 
 # ---------------------------------------------------------------------------
 # Row 2: Discipline & Gender share (diverging bar) + Sector share trend
@@ -74,9 +82,13 @@ col3, col4 = st.columns([1.4, 1])
 
 with col3:
     st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-    st.plotly_chart(discipline_gender_diverging_chart(discipline_table), use_container_width=True, config=PLOTLY_CONFIG)
-    st.caption("Discipline data is province-wise only (no year breakdown available in source data).")
+    disc_df = discipline_table if pct else load_discipline_count_table_for_ratios(sel_provinces)
+    st.plotly_chart(discipline_gender_diverging_chart(disc_df, mode), use_container_width=True, config=PLOTLY_CONFIG)
+    st.caption(
+        "Discipline data is province-wise only (no year breakdown available in source data)."
+        + ("" if pct else " Headcounts are estimates: each province's % × its all-years enrolment.")
+    )
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col4:
-    chart_card(sector_share_trend_chart(sector_table))
+    chart_card(sector_share_trend_chart(sector_table if pct else load_sector_count_table(sel_provinces, sel_years), mode))
