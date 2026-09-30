@@ -30,7 +30,6 @@ sel_years = st.sidebar.multiselect(
     "Year", YEAR_ORDER, default=[], label_visibility="collapsed",
     placeholder="All years",
 )
-mode = value_mode_toggle()
 
 discipline_table = load_discipline_count_table(sel_provinces)
 gender_year_table = load_gender_year_table(sel_provinces, sel_years)
@@ -44,6 +43,7 @@ render_header(
     stat={"title": "Female Share of Enrolment", "value": f"{female_pct:.1f}%"},
     stat_icon="👩‍🎓",
 )
+mode = value_mode_toggle()
 
 
 def chart_card(fig):
