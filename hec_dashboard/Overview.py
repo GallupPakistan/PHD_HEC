@@ -82,8 +82,6 @@ render_header(
     stat={"title": "Total HEIs", "value": f"{total_heis:,}"},
     stat_icon="🏛️",
 )
-mode = value_mode_toggle()
-
 # ---------------------------------------------------------------------------
 # KPI strip
 # ---------------------------------------------------------------------------
@@ -101,6 +99,7 @@ with k5:
 with k6:
     kpi_card("Female Enrolment Share", f"{female_pct:.1f}%", color=BOARD_COLOR_SEQUENCE[7])
 
+mode = value_mode_toggle()
 st.write("")
 
 
@@ -114,7 +113,7 @@ chart_card(hei_growth_mini_chart(year_df, mode))
 c1, c2 = st.columns(2)
 with c1:
     chart_card(hbar(province_bars["Province"], province_bars["Total"], "HEIs by Province",
-                    colors=[PROVINCE_COLORS.get(p) for p in province_bars["Province"]], xtitle="Total HEIs"))
+                    colors=[PROVINCE_COLORS.get(p) for p in province_bars["Province"]], xtitle="Total HEIs", mode=mode))
 with c2:
     chart_card(sector_donut_chart(sector_df, mode))
 
@@ -130,26 +129,28 @@ with c3:
 with c4:
     chart_card(hbar(enrol_prov["Province"], enrol_prov["Total"], "Enrolment by Province",
                     colors=[PROVINCE_COLORS.get(p) for p in enrol_prov["Province"]],
-                    xtitle="Enrolment (selected years combined)"))
+                    xtitle="Enrolment (selected years combined)", mode=mode))
 
 disc_top = discipline_top.copy()
 disc_top["Label"] = disc_top["Discipline"].apply(clean_discipline)
+# share of ALL disciplines (not just the 8 shown): total = shown sum / shown share
+_disc_all = float(disc_top["Total"].sum()) / (float(disc_top["Share"].sum()) / 100) if disc_top["Share"].sum() else None
 chart_card(hbar(disc_top["Label"], disc_top["Total"], "Enrolment by Discipline (Top 8)", color=COLORS["accent"],
-                xtitle="Enrolment (estimated)"))
+                xtitle="Enrolment (estimated)", mode=mode, total=_disc_all))
 
 # ---------------------------------------------------------------------------
 # Faculty
 # ---------------------------------------------------------------------------
 chart_card(stacked_hbar(faculty_prov_agg["Province"],
                         [("PhD", faculty_prov_agg["PhD"], GOLD), ("Non-PhD", faculty_prov_agg["Non_PhD"], COLORS["accent"])],
-                        "Faculty by Province (PhD vs Non-PhD)", xtitle="Faculty Count"))
+                        "Faculty by Province (PhD vs Non-PhD)", xtitle="Faculty Count", mode=mode))
 c5, c6 = st.columns(2)
 with c5:
     chart_card(faculty_gender_donut_chart(faculty_gender_df, mode))
 with c6:
     chart_card(hbar(grad_prov["Province"], grad_prov["Total"], "Graduates by Province",
                     colors=[PROVINCE_COLORS.get(p) for p in grad_prov["Province"]],
-                    xtitle="Graduates (selected years combined)"))
+                    xtitle="Graduates (selected years combined)", mode=mode))
 
 # ---------------------------------------------------------------------------
 # Graduates & PhDs
@@ -157,4 +158,4 @@ with c6:
 chart_card(graduates_trend_mini_chart(graduates_agg, mode))
 chart_card(phd_year_bar_chart(phd_by_year, mode))
 chart_card(hbar(phd_prov["Province"], phd_prov["PhDs"], "PhDs Produced by Province",
-                colors=[PROVINCE_COLORS.get(p) for p in phd_prov["Province"]], xtitle="PhDs Produced"),)
+                colors=[PROVINCE_COLORS.get(p) for p in phd_prov["Province"]], xtitle="PhDs Produced", mode=mode))
