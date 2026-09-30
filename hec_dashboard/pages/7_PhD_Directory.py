@@ -20,13 +20,13 @@ def fmt_k(n):
 
 st.set_page_config(page_title=f"{APP_NAME} — PhD Directory", page_icon=PAGE_ICON, layout="wide")
 inject_css()
-mode = value_mode_toggle()
 render_header(
     "PhD Country Directory",
     "PhD graduates produced by national universities, by year, discipline, and subject.",
     stat={"title": "PhD Graduates Registered", "value": fmt_k(total_phds())},
     stat_icon="🎓",
 )
+mode = value_mode_toggle()
 
 # ---------------------------------------------------------------------------
 # Row 1: Year trend chart + Discipline bar chart
