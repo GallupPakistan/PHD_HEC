@@ -69,21 +69,25 @@ def province_qualification_bar_chart(province_df, mode="Numbers"):
     return fig
 
 
-def qualification_share_donut(pct_row):
+def qualification_share_donut(pct_row, counts_row=None, mode="Percentage"):
     """PhD vs Non-PhD share for the selected (single) year, as a donut with
     the PhD share called out in the centre — a trend line isn't meaningful
-    with only one year of faculty data available."""
+    with only one year of faculty data available. Numbers mode uses the
+    headcounts in `counts_row` (PhD / Non_PhD) instead of the shares."""
+    pct = is_pct(mode) or counts_row is None
     long_df = pd.DataFrame({
         "Qualification": ["PhD", "Non-PhD"],
         "Percentage": [pct_row["PhD"], pct_row["Non_PhD"]],
+        "Count": [counts_row["PhD"], counts_row["Non_PhD"]] if counts_row is not None else [0, 0],
     })
     lead = "PhD" if pct_row["PhD"] >= pct_row["Non_PhD"] else "Non-PhD"
     fig = px.pie(
-        long_df, names="Qualification", values="Percentage", hole=0.55,
+        long_df, names="Qualification", values="Percentage" if pct else "Count", hole=0.55,
         color="Qualification", color_discrete_map=QUALIFICATION_COLORS,
     )
     fig.update_traces(
-        textinfo="percent", textposition="inside", insidetextorientation="horizontal",
+        textinfo="percent" if pct else "value+percent", textposition="inside",
+        insidetextorientation="horizontal",
         textfont=dict(size=13, color="#FFFFFF"), sort=False,
         marker=dict(line=dict(color="#FFFFFF", width=2)),
         pull=[0.05 if q == lead else 0 for q in long_df["Qualification"]],
@@ -93,7 +97,10 @@ def qualification_share_donut(pct_row):
         legend=dict(orientation="h", yanchor="bottom", y=-0.14, xanchor="center", x=0.5),
         margin=dict(t=50, b=60, l=30, r=30),
         annotations=[
-            dict(text=f"{pct_row['PhD']:.1f}%<br>PhD", x=0.5, y=0.5, font_size=14, showarrow=False)
+            dict(
+                text=(f"{pct_row['PhD']:.1f}%<br>PhD" if pct else f"{int(counts_row['PhD']):,}<br>PhD"),
+                x=0.5, y=0.5, font_size=14, showarrow=False,
+            )
         ],
     )
     return fig
