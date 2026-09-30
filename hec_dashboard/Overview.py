@@ -2,12 +2,18 @@ import streamlit as st
 
 from config.settings import APP_NAME, PAGE_ICON
 from styles.css import inject_css
-from styles.theme import PLOTLY_CONFIG, BOARD_COLOR_SEQUENCE
+from styles.theme import PLOTLY_CONFIG, BOARD_COLOR_SEQUENCE, COLORS
 from components.header import render_header
 from components.kpi_card import kpi_card
 from components.toggle import value_mode_toggle
+from components.cards import chart_card
 
 from data.enrolment_recipes import PROVINCES, YEAR_ORDER
+from data.extra_recipes import (
+    enrol_by_province, passout_by_province, phd_by_province, clean_discipline,
+)
+from data.passout_recipes import YEAR_ORDER as PASSOUT_YEARS
+from data.overview_recipes import _years_for
 from data.overview_recipes import (
     overview_universities,
     overview_enrolment,
@@ -17,6 +23,7 @@ from data.overview_recipes import (
     overview_phd,
 )
 from charts.universities import city_map_chart, sector_donut_chart
+from charts.extra import hbar, stacked_hbar, PROVINCE_COLORS, GOLD, PUBLIC, PRIVATE
 from charts.enrolment import gender_pie_chart
 from charts.overview_charts import (
     hei_growth_mini_chart,
@@ -62,6 +69,9 @@ discipline_top = overview_discipline(top_n=8, provinces=sel_provinces)
 faculty_prov_agg, faculty_gender_df, total_faculty = overview_faculty(sel_provinces, sel_years)
 graduates_agg, latest_graduates = overview_graduates(sel_provinces, sel_years)
 phd_by_year, total_phds_count = overview_phd()
+enrol_prov = enrol_by_province(sel_provinces, sel_years, "gender")
+grad_prov = passout_by_province(sel_provinces, _years_for(sel_years, PASSOUT_YEARS) or None, "gender")
+phd_prov = phd_by_province()
 
 female_pct = gender_summary.loc[gender_summary["Gender"] == "Female", "Percentage"]
 female_pct = float(female_pct.iloc[0]) if not female_pct.empty else 0.0
@@ -94,62 +104,57 @@ with k6:
 st.write("")
 
 
-def chart_card(fig):
-    st.markdown('<div class="hec-card">', unsafe_allow_html=True)
-    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
 # ---------------------------------------------------------------------------
-# Row 1 — Universities: map + growth trend
+# Universities
 # ---------------------------------------------------------------------------
-st.caption("Universities charts below are not affected by the sidebar filters.")
+st.caption("Universities and PhD Directory charts are not affected by the sidebar filters.")
+chart_card(city_map_chart(city_df, mode))
+chart_card(hei_growth_mini_chart(year_df, mode))
+
 c1, c2 = st.columns(2)
 with c1:
-    chart_card(city_map_chart(city_df, mode))
+    chart_card(hbar(province_bars["Province"], province_bars["Total"], "HEIs by Province",
+                    colors=[PROVINCE_COLORS.get(p) for p in province_bars["Province"]], xtitle="Total HEIs"))
 with c2:
-    chart_card(hei_growth_mini_chart(year_df, mode))
-
-# ---------------------------------------------------------------------------
-# Row 2 — Universities: province split + sector split
-# ---------------------------------------------------------------------------
-c3, c4 = st.columns(2)
-with c3:
-    chart_card(province_hei_bar_chart(province_bars, mode))
-with c4:
     chart_card(sector_donut_chart(sector_df, mode))
 
 # ---------------------------------------------------------------------------
-# Row 3 — Enrolment: trend + gender split
+# Enrolment
 # ---------------------------------------------------------------------------
+chart_card(enrolment_trend_mini_chart(gender_agg, mode))
+chart_card(level_stacked_bar_chart(level_agg, mode))
+
+c3, c4 = st.columns(2)
+with c3:
+    chart_card(gender_pie_chart(gender_summary, mode))
+with c4:
+    chart_card(hbar(enrol_prov["Province"], enrol_prov["Total"], "Enrolment by Province",
+                    colors=[PROVINCE_COLORS.get(p) for p in enrol_prov["Province"]],
+                    xtitle="Enrolment (selected years combined)"))
+
+disc_top = discipline_top.copy()
+disc_top["Label"] = disc_top["Discipline"].apply(clean_discipline)
+chart_card(hbar(disc_top["Label"], disc_top["Total"], "Enrolment by Discipline (Top 8)", color=COLORS["accent"],
+                xtitle="Enrolment (estimated)"))
+
+# ---------------------------------------------------------------------------
+# Faculty
+# ---------------------------------------------------------------------------
+chart_card(stacked_hbar(faculty_prov_agg["Province"],
+                        [("PhD", faculty_prov_agg["PhD"], GOLD), ("Non-PhD", faculty_prov_agg["Non_PhD"], COLORS["accent"])],
+                        "Faculty by Province (PhD vs Non-PhD)", xtitle="Faculty Count"))
 c5, c6 = st.columns(2)
 with c5:
-    chart_card(enrolment_trend_mini_chart(gender_agg, mode))
-with c6:
-    chart_card(gender_pie_chart(gender_summary, mode))
-
-# ---------------------------------------------------------------------------
-# Row 4 — Enrolment: level split + discipline (full width, stacked)
-# ---------------------------------------------------------------------------
-chart_card(level_stacked_bar_chart(level_agg, mode))
-chart_card(discipline_bar_chart_overview(discipline_top, mode))
-
-# ---------------------------------------------------------------------------
-# Row 5 — Faculty: province split + gender split
-# ---------------------------------------------------------------------------
-c9, c10 = st.columns(2)
-with c9:
-    chart_card(faculty_province_bar_chart(faculty_prov_agg, mode))
-with c10:
     chart_card(faculty_gender_donut_chart(faculty_gender_df, mode))
+with c6:
+    chart_card(hbar(grad_prov["Province"], grad_prov["Total"], "Graduates by Province",
+                    colors=[PROVINCE_COLORS.get(p) for p in grad_prov["Province"]],
+                    xtitle="Graduates (selected years combined)"))
 
 # ---------------------------------------------------------------------------
-# Row 6 — Graduates trend + PhD registrations by year
-# (PhD Directory chart on the right is not affected by the sidebar filters —
-# its source data has no Province column.)
+# Graduates & PhDs
 # ---------------------------------------------------------------------------
-c11, c12 = st.columns(2)
-with c11:
-    chart_card(graduates_trend_mini_chart(graduates_agg, mode))
-with c12:
-    chart_card(phd_year_bar_chart(phd_by_year, mode))
+chart_card(graduates_trend_mini_chart(graduates_agg, mode))
+chart_card(phd_year_bar_chart(phd_by_year, mode))
+chart_card(hbar(phd_prov["Province"], phd_prov["PhDs"], "PhDs Produced by Province",
+                colors=[PROVINCE_COLORS.get(p) for p in phd_prov["Province"]], xtitle="PhDs Produced"),)
