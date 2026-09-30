@@ -56,7 +56,12 @@ def discipline_gender_diverging_chart(discipline_table, mode="Percentage"):
     Female_Pct / Male_Pct columns; Numbers mode uses estimated Female / Male
     headcounts (see load_discipline_count_table_for_ratios)."""
     pct = is_pct(mode)
-    df = discipline_table
+    df = discipline_table.copy()
+    if pct and "Female_Pct" not in df.columns:
+        # derive shares of overall enrolment from the (estimated) headcounts
+        grand = float(df["Female"].sum() + df["Male"].sum()) or 1.0
+        df["Female_Pct"] = df["Female"] / grand * 100
+        df["Male_Pct"] = df["Male"] / grand * 100
     labels = df["Discipline"].astype(str)
     female = df["Female_Pct"] if pct else df["Female"]
     male = df["Male_Pct"] if pct else df["Male"]
@@ -139,9 +144,11 @@ def sector_share_trend_chart(sector_table, mode="Percentage"):
     dashboard. No per-point labels; hover carries the exact split."""
     if not is_pct(mode):
         return _sector_count_chart(sector_table)
-    x = sector_table["Year"].astype(str)
-    private = sector_table["Private"]
-    public = sector_table["Public"]
+    x = sector_table["Year"].astype(str).reset_index(drop=True)
+    both = (sector_table["Private"] + sector_table["Public"]).reset_index(drop=True)
+    # accepts counts or shares: always express as each sector's % of (Private + Public)
+    private = (sector_table["Private"].reset_index(drop=True) / both * 100).fillna(0)
+    public = (sector_table["Public"].reset_index(drop=True) / both * 100).fillna(0)
 
     above = private.where(private >= 50)
     below = private.where(private < 50)
