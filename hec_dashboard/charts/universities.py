@@ -1,6 +1,6 @@
 import plotly.express as px
 import plotly.graph_objects as go
-from charts._base import base_layout, is_pct, share, legend_below
+from charts._base import apply_finalize, base_layout, is_pct, share, legend_below
 from styles.theme import COLORS
 
 
@@ -171,3 +171,6 @@ def sector_donut_chart(sector_df, mode="Numbers"):
         ],
     )
     return fig
+
+
+apply_finalize(globals())
