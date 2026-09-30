@@ -1,5 +1,5 @@
 import plotly.graph_objects as go
-from charts._base import base_layout, legend_below, is_pct, fmt_compact
+from charts._base import apply_finalize, base_layout, legend_below, is_pct, fmt_compact
 from styles.theme import COLORS, BOARD_COLOR_SEQUENCE
 
 # Same Bachelor/Master/MS-Mphil/PGD/PhD -> color mapping used by
@@ -179,3 +179,6 @@ def sector_share_trend_chart(sector_table, mode="Percentage"):
     fig.update_xaxes(tickangle=-25, automargin=True)
     fig.update_yaxes(ticksuffix="%", range=[0, 100])
     return fig
+
+
+apply_finalize(globals())
