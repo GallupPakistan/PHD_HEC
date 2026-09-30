@@ -52,7 +52,6 @@ st.sidebar.caption(
     "Filters apply to Enrolment, Faculty, Graduates and Discipline charts. "
     "Universities and PhD Directory charts always show all data."
 )
-mode = value_mode_toggle()
 
 # ---------------------------------------------------------------------------
 # Pull every page's numbers in one pass
@@ -73,6 +72,7 @@ render_header(
     stat={"title": "Total HEIs", "value": f"{total_heis:,}"},
     stat_icon="🏛️",
 )
+mode = value_mode_toggle()
 
 # ---------------------------------------------------------------------------
 # KPI strip
@@ -106,9 +106,9 @@ def chart_card(fig):
 st.caption("Universities charts below are not affected by the sidebar filters.")
 c1, c2 = st.columns(2)
 with c1:
-    chart_card(city_map_chart(city_df))
+    chart_card(city_map_chart(city_df, mode))
 with c2:
-    chart_card(hei_growth_mini_chart(year_df))
+    chart_card(hei_growth_mini_chart(year_df, mode))
 
 # ---------------------------------------------------------------------------
 # Row 2 — Universities: province split + sector split
