@@ -140,17 +140,20 @@ def discipline_gender_bar_chart(disc_df, mode="Numbers"):
     return fig
 
 
-def level_pie_chart(level_summary_df):
+def level_pie_chart(level_summary_df, mode="Percentage"):
+    """Numbers mode sizes/labels slices by headcount (needs a 'Count' column
+    from load_level_ratio_summary); Percentage mode by share."""
+    pct = is_pct(mode) or "Count" not in level_summary_df.columns
     fig = px.pie(
         level_summary_df,
         names="Level",
-        values="Percentage",
+        values="Percentage" if pct else "Count",
         hole=0,
         color="Level",
         color_discrete_sequence=BOARD_COLOR_SEQUENCE,
     )
     fig.update_traces(
-        textinfo="percent",
+        textinfo="percent" if pct else "value+percent",
         textposition="outside",
         textfont=dict(size=11, color=COLORS["text_on_light"]),
         sort=False,
