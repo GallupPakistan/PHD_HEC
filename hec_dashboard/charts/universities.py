@@ -48,32 +48,40 @@ def city_map_chart(city_df, mode="Numbers"):
     return fig
 
 
-def year_growth_chart(year_df, mode="Numbers"):
+def year_growth_chart(year_df, mode="Percentage"):
     """Two clean lines, no data labels (exact values are in the hover):
-    the running total of HEIs, and HEIs established in each year."""
+    the running total of HEIs, and HEIs established in each year.
+    Percentage mode expresses both as a share of today's total HEIs."""
+    pct = is_pct(mode)
+    today = float(year_df["Cumulative_Total"].max()) or 1.0
+    cum = year_df["Cumulative_Total"] / today * 100 if pct else year_df["Cumulative_Total"]
+    new = year_df["New_Added"] / today * 100 if pct else year_df["New_Added"]
+    hov = "%{y:.1f}%" if pct else "%{y:,.0f}"
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=year_df["Year"], y=year_df["Cumulative_Total"], mode="lines+markers",
+        x=year_df["Year"], y=cum, mode="lines+markers",
         name="Total HEIs established (running total)",
         line=dict(color=COLORS["positive"], width=3), marker=dict(size=5),
-        hovertemplate="%{y:,.0f}<extra>Running total</extra>",
+        hovertemplate=hov + "<extra>Running total</extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=year_df["Year"], y=year_df["New_Added"], mode="lines+markers",
+        x=year_df["Year"], y=new, mode="lines+markers",
         name="New HEIs established within the year",
         line=dict(color=COLORS["private"], width=2), marker=dict(size=5),
-        hovertemplate="%{y:,.0f}<extra>New that year</extra>",
+        hovertemplate=hov + "<extra>New that year</extra>",
     ))
     fig.update_layout(**base_layout("Increase in HEIs over the years (1959–2025)", height=470))
     fig.update_layout(
         showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0.0),
         margin=dict(t=105, b=60, l=70, r=30),
-        xaxis_title="Year", yaxis_title="Number of HEIs",
+        xaxis_title="Year", yaxis_title="Share of today's HEIs (%)" if pct else "Number of HEIs",
         hovermode="x unified",
     )
     fig.update_xaxes(dtick=5, tickangle=0)
     fig.update_yaxes(rangemode="tozero", gridcolor="rgba(0,0,0,0.06)")
+    if pct:
+        fig.update_yaxes(ticksuffix="%", tickformat=".0f")
     return fig
 
 
@@ -138,7 +146,7 @@ def sector_donut_chart(sector_df, mode="Numbers"):
         margin=dict(t=50, b=50, l=40, r=40),
         uniformtext_minsize=10,
         uniformtext_mode="hide",
-        annotations=[
+        annotations=[] if is_pct(mode) else [
             dict(text=f"{total}<br>Total", x=0.5, y=0.5, font_size=16, showarrow=False)
         ],
     )
